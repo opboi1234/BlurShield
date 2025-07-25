@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BlurShield - Privacy Protection</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #4e54c8, #8f94fb);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #222;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: rgba(255,255,255,0.95);
+            box-shadow: 0 8px 32px rgba(78,84,200,0.2);
+            border-radius: 20px;
+            padding: 32px 24px;
+            width: 420px;
+            max-width: 90vw;
+            text-align: center;
+            animation: fadeIn 1s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h1 {
+            font-size: 2.2em;
+            margin-bottom: 12px;
+            color: #4e54c8;
+        }
+        .upload-label {
+            display: block;
+            margin-bottom: 16px;
+            cursor: pointer;
+            color: #4e54c8;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .upload-label:hover {
+            color: #8f94fb;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .slider {
+            width: 80%;
+            margin: 18px auto 8px auto;
+        }
+        .slider-label {
+            font-size: 1em;
+            margin-bottom: 4px;
+        }
+        .canvas-wrapper {
+            position: relative;
+            margin: 18px auto;
+            width: 350px;
+            height: 350px;
+            background: #eaeaea;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(78,84,200,0.08);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 16px;
+            background: #f5f5f5;
+        }
+        .placeholder {
+            position: absolute;
+            left: 0; top: 0; right: 0; bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #aaa;
+            font-size: 1.1em;
+            pointer-events: none;
+        }
+        .btn {
+            background: linear-gradient(90deg, #4e54c8, #8f94fb);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 24px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 18px;
+            box-shadow: 0 2px 8px rgba(78,84,200,0.12);
+            transition: background 0.2s, transform 0.2s;
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .loading {
+            font-size: 1.1em;
+            color: #4e54c8;
+            margin-top: 12px;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        .blur-rect {
+            position: absolute;
+            border: 2px solid #ffb347;
+            background: rgba(255,179,71,0.18);
+            border-radius: 6px;
+            pointer-events: none;
+            z-index: 2;
+            animation: fadeIn 0.7s;
+        }
+    </style>
+    <!-- Tesseract.js -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+    <!-- face-api.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>BlurShield</h1>
+        <label class="upload-label" for="imageUpload">Upload Image</label>
+        <input type="file" id="imageUpload" accept="image/png, image/jpeg">
+        <div class="slider-label">Blur Strength: <span id="blurValue">12</span>px</div>
+        <input type="range" min="4" max="32" value="12" class="slider" id="blurSlider">
+        <div class="canvas-wrapper">
+            <canvas id="canvas" width="350" height="350"></canvas>
+            <div class="placeholder" id="placeholder">No image uploaded</div>
+        </div>
+        <button class="btn" id="downloadBtn" style="display:none;">Download Blurred Image</button>
+        <div class="loading" id="loading" style="display:none;">Blurring...</div>
+    </div>
+    <script src="main.js"></script>
+</body>
+</html>
