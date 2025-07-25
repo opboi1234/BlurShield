@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BlurShield</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      text-align: center;
+      background: #f0f0f0;
+      padding: 2rem;
+    }
+    h1 {
+      color: #333;
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    .container {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 2rem;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    canvas {
+      margin-top: 1rem;
+      border: 2px solid #555;
+      max-width: 100%;
+      border-radius: 8px;
+      background: #eee;
+    }
+    input[type="file"], button, input[type="range"] {
+      margin: 1rem auto;
+      display: block;
+    }
+    .slider-container {
+      width: 300px;
+      margin: 0 auto;
+    }
+    label {
+      font-weight: bold;
+    }
+    #blurMessage {
+      font-weight: bold;
+      color: green;
+      margin: 10px;
+    }
+    .feature-list {
+      text-align: left;
+      margin: 1rem auto;
+      max-width: 350px;
+      font-size: 1rem;
+      color: #444;
+      background: #f8f8f8;
+      border-radius: 8px;
+      padding: 1rem;
+      list-style: none;
+    }
+    .feature-list li {
+      margin-bottom: 0.5rem;
+    }
+    .name-input {
+      display: none;
+      margin-left: 10px;
+      width: 60%;
+    }
+    .feature-checkbox {
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔒 BlurShield</h1>
+  <div class="container">
+    <input type="file" id="imageInput" accept="image/*">
+    <div class="slider-container">
+      <label for="blurStrength">Box Padding: <span id="blurValue">5</span>px</label>
+      <input type="range" id="blurStrength" min="1" max="30" value="5">
+    </div>
+    <button onclick="processImage()">🧠 Detect & Blackout</button>
+    <p id="blurMessage"></p>
+    <canvas id="canvas"></canvas>
+    <button onclick="downloadImage()">⬇️ Download Clean Image</button>
+    <ul class="feature-list">
+      <li>
+        <input type="checkbox" class="feature-checkbox" id="blurEmails" checked> Email addresses
+      </li>
+      <li>
+        <input type="checkbox" class="feature-checkbox" id="blurPhones" checked> Phone numbers
+      </li>
+      <li>
+        <input type="checkbox" class="feature-checkbox" id="blurCards" checked> Credit card numbers
+      </li>
+      <li>
+        <input type="checkbox" class="feature-checkbox" id="blurNames" checked onchange="toggleNameInput()"> Names
+        <input type="text" id="nameInput" class="name-input" placeholder="Enter your name">
+      </li>
+      <li>
+        <input type="checkbox" class="feature-checkbox" id="blurAddresses" checked> Addresses
+      </li>
+      <li>
+        <input type="checkbox" class="feature-checkbox" id="blurFaces" checked> Faces
+      </li>
+    </ul>
+  </div>
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+  <script>
+    // Show/hide name input and prompt for name if checked
+    function toggleNameInput() {
+      const nameInput = document.getElementById('nameInput');
+      const blurNames = document.getElementById('blurNames');
+      if (blurNames.checked) {
+        nameInput.style.display = 'inline-block';
+        if (!nameInput.value) {
+          const name = prompt("Please enter your name to be blurred:");
+          nameInput.value = name ? name : '';
+        }
+      } else {
+        nameInput.style.display = 'none';
+        nameInput.value = '';
+      }
+    }
+    window.onload = toggleNameInput;
+  </script>
+  <script src="main.js"></script>
+</body>
+</html>
