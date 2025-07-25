@@ -2,145 +2,291 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BlurShield - Privacy Protection</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrivacyShield - Auto Screenshot Cleaner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(135deg, #4e54c8, #8f94fb);
-            font-family: 'Segoe UI', Arial, sans-serif;
-            color: #222;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        .container {
-            background: rgba(255,255,255,0.95);
-            box-shadow: 0 8px 32px rgba(78,84,200,0.2);
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
-            padding: 32px 24px;
-            width: 420px;
-            max-width: 90vw;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            margin: 20px auto;
+            max-width: 1000px;
+            padding: 30px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #007bff;
+            border-radius: 15px;
+            padding: 40px;
             text-align: center;
-            animation: fadeIn 1s;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(40px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        h1 {
-            font-size: 2.2em;
-            margin-bottom: 12px;
-            color: #4e54c8;
-        }
-        .upload-label {
-            display: block;
-            margin-bottom: 16px;
+            background: #f8f9ff;
+            transition: all 0.3s ease;
             cursor: pointer;
-            color: #4e54c8;
-            font-weight: 500;
-            transition: color 0.2s;
         }
-        .upload-label:hover {
-            color: #8f94fb;
+        
+        .upload-area:hover {
+            border-color: #0056b3;
+            background: #e7f1ff;
+            transform: translateY(-2px);
         }
-        input[type="file"] {
-            display: none;
+        
+        .upload-area.dragover {
+            border-color: #28a745;
+            background: #e8f5e8;
         }
-        .slider {
-            width: 80%;
-            margin: 18px auto 8px auto;
-        }
-        .slider-label {
-            font-size: 1em;
-            margin-bottom: 4px;
-        }
-        .canvas-wrapper {
+        
+        .canvas-container {
             position: relative;
-            margin: 18px auto;
-            width: 350px;
-            height: 350px;
-            background: #eaeaea;
-            border-radius: 16px;
-            box-shadow: 0 2px 12px rgba(78,84,200,0.08);
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: inline-block;
+            margin: 20px 0;
         }
-        canvas {
+        
+        #imageCanvas {
             max-width: 100%;
-            max-height: 100%;
-            border-radius: 16px;
-            background: #f5f5f5;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
-        .placeholder {
-            position: absolute;
-            left: 0; top: 0; right: 0; bottom: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #aaa;
-            font-size: 1.1em;
-            pointer-events: none;
+        
+        .controls {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
         }
-        .btn {
-            background: linear-gradient(90deg, #4e54c8, #8f94fb);
-            color: #fff;
+        
+        .privacy-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .privacy-option {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .privacy-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .btn-custom {
+            background: linear-gradient(45deg, #007bff, #0056b3);
             border: none;
-            border-radius: 8px;
-            padding: 10px 24px;
-            font-size: 1em;
-            font-weight: 500;
-            cursor: pointer;
-            margin-top: 18px;
-            box-shadow: 0 2px 8px rgba(78,84,200,0.12);
-            transition: background 0.2s, transform 0.2s;
+            border-radius: 25px;
+            padding: 12px 30px;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
-        .btn:active {
-            transform: scale(0.97);
+        
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,123,255,0.3);
+            color: white;
         }
-        .loading {
-            font-size: 1.1em;
-            color: #4e54c8;
-            margin-top: 12px;
-            animation: pulse 1s infinite;
+        
+        .blur-strength-container {
+            margin: 15px 0;
         }
-        @keyframes pulse {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
+        
+        .blur-strength-slider {
+            width: 100%;
+            margin: 10px 0;
         }
-        .blur-rect {
-            position: absolute;
-            border: 2px solid #ffb347;
-            background: rgba(255,179,71,0.18);
-            border-radius: 6px;
-            pointer-events: none;
-            z-index: 2;
-            animation: fadeIn 0.7s;
+        
+        .name-input-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
         }
     </style>
-    <!-- Tesseract.js -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
-    <!-- face-api.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>BlurShield</h1>
-        <label class="upload-label" for="imageUpload">Upload Image</label>
-        <input type="file" id="imageUpload" accept="image/png, image/jpeg">
-        <div class="slider-label">Blur Strength: <span id="blurValue">12</span>px</div>
-        <input type="range" min="4" max="32" value="12" class="slider" id="blurSlider">
-        <div class="canvas-wrapper">
-            <canvas id="canvas" width="350" height="350"></canvas>
-            <div class="placeholder" id="placeholder">No image uploaded</div>
+    <div class="container-fluid">
+        <div class="main-container">
+            <div class="text-center mb-4">
+                <h1 class="display-4 text-primary">
+                    <i class="fas fa-shield-alt"></i> PrivacyShield
+                </h1>
+                <p class="lead text-muted">AI-Powered Screenshot Privacy Cleaner</p>
+                <p class="text-muted">Automatically blur sensitive information in your screenshots</p>
+            </div>
+            
+            <!-- Upload Area -->
+            <div class="upload-area" id="uploadArea">
+                <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                <h4>Drop your screenshot here or click to upload</h4>
+                <p class="text-muted">Supports JPG, PNG files</p>
+                <input type="file" id="imageInput" accept="image/*" style="display: none;">
+            </div>
+            
+            <!-- Privacy Options -->
+            <div class="privacy-options" id="privacyOptions" style="display: none;">
+                <div class="privacy-option">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="blurEmails" checked>
+                        <label class="form-check-label" for="blurEmails">
+                            <i class="fas fa-envelope text-danger"></i> Email Addresses
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="privacy-option">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="blurPhones" checked>
+                        <label class="form-check-label" for="blurPhones">
+                            <i class="fas fa-phone text-success"></i> Phone Numbers
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="privacy-option">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="blurCards" checked>
+                        <label class="form-check-label" for="blurCards">
+                            <i class="fas fa-credit-card text-warning"></i> Credit Cards
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="privacy-option">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="blurFaces" checked>
+                        <label class="form-check-label" for="blurFaces">
+                            <i class="fas fa-user text-info"></i> Faces
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="privacy-option">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="blurNames">
+                        <label class="form-check-label" for="blurNames">
+                            <i class="fas fa-id-badge text-purple"></i> Your Name
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="privacy-option">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="blurAddresses" checked>
+                        <label class="form-check-label" for="blurAddresses">
+                            <i class="fas fa-home text-secondary"></i> Addresses
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Controls -->
+            <div class="controls" id="controls" style="display: none;">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="blur-strength-container">
+                            <label for="blurStrength" class="form-label">
+                                <i class="fas fa-adjust"></i> Blur Strength: <span id="blurValue">10</span>px
+                            </label>
+                            <input type="range" class="form-range blur-strength-slider" id="blurStrength" 
+                                   min="5" max="25" value="10">
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button class="btn btn-custom me-2" id="processBtn">
+                            <i class="fas fa-magic"></i> Process Image
+                        </button>
+                        <button class="btn btn-success" id="downloadBtn" style="display: none;">
+                            <i class="fas fa-download"></i> Download Clean Image
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Loading Spinner -->
+            <div class="loading-spinner" id="loadingSpinner">
+                <div class="spinner"></div>
+                <h5>🤖 AI is scanning your image...</h5>
+                <p class="text-muted">Detecting sensitive information</p>
+            </div>
+            
+            <!-- Canvas Container -->
+            <div class="text-center">
+                <div class="canvas-container" id="canvasContainer" style="display: none;">
+                    <canvas id="imageCanvas"></canvas>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="text-center mt-4">
+                <p class="text-muted">
+                    <i class="fas fa-lock"></i> Your privacy is protected - all processing happens locally in your browser
+                </p>
+            </div>
         </div>
-        <button class="btn" id="downloadBtn" style="display:none;">Download Blurred Image</button>
-        <div class="loading" id="loading" style="display:none;">Blurring...</div>
     </div>
+    
+    <!-- Name Input Modal -->
+    <div class="name-input-modal" id="nameModal">
+        <div class="modal-content">
+            <h4><i class="fas fa-user"></i> Enter Your Name</h4>
+            <p class="text-muted">We'll find and blur your name in the image</p>
+            <input type="text" class="form-control mb-3" id="userNameInput" placeholder="Enter your full name">
+            <button class="btn btn-primary me-2" id="confirmName">Confirm</button>
+            <button class="btn btn-secondary" id="cancelName">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script>
     <script src="main.js"></script>
 </body>
 </html>
