@@ -1,0 +1,19 @@
+<li>
+  <input type="checkbox" class="feature-checkbox" id="blurNames" checked onchange="toggleNameInput()"> Names
+  <input type="text" id="nameInput" class="name-input" placeholder="Enter your name" oninput="updateNameValue()">
+</li>
+<script>
+  // Show/hide name input when checked
+  function toggleNameInput() {
+    const nameInput = document.getElementById('nameInput');
+    const blurNames = document.getElementById('blurNames');
+    nameInput.style.display = blurNames.checked ? 'inline-block' : 'none';
+    if (!blurNames.checked) {
+      nameInput.value = '';
+    }
+  }
+  function updateNameValue() {
+    // Optionally handle live updates if needed
+  }
+  window.onload = toggleNameInput;
+</script>
