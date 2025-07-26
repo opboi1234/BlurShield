@@ -1,330 +1,411 @@
-class PrivacyShield {
+// Enhanced Auto-Privacy Screenshot Cleaner
+class PrivacyScreenshotCleaner {
     constructor() {
-        this.canvas = document.getElementById('imageCanvas');
+        this.initializeElements();
+        this.initializeState();
+        this.bindEvents();
+        this.loadFaceApiModels();
+    }
+
+    initializeElements() {
+        this.imageUpload = document.getElementById('imageUpload');
+        this.uploadSection = document.getElementById('uploadSection');
+        this.canvas = document.getElementById('canvas');
         this.ctx = this.canvas.getContext('2d');
-        this.originalImageData = null;
-        this.currentImage = null;
-        this.blurStrength = 10;
+        this.blurSlider = document.getElementById('blurSlider');
+        this.blurValue = document.getElementById('blurValue');
+        this.blurPreview = document.getElementById('blurPreview');
+        this.loadingOverlay = document.getElementById('loadingOverlay');
+        this.loadingText = document.getElementById('loadingText');
+        this.progressBar = document.getElementById('progressBar');
+        this.downloadBtn = document.getElementById('downloadBtn');
+        this.resetBtn = document.getElementById('resetBtn');
+        this.placeholder = document.getElementById('placeholder');
+        this.detectionStats = document.getElementById('detectionStats');
+        
+        // Checkboxes
+        this.blurNameCheck = document.getElementById('blurNameCheck');
+        this.userNameInput = document.getElementById('userNameInput');
+        this.detectEmails = document.getElementById('detectEmails');
+        this.detectPhones = document.getElementById('detectPhones');
+        this.detectFaces = document.getElementById('detectFaces');
+        this.detectAddresses = document.getElementById('detectAddresses');
+        this.detectCreditCards = document.getElementById('detectCreditCards');
+        
+        // Stats
+        this.textDetections = document.getElementById('textDetections');
+        this.faceDetections = document.getElementById('faceDetections');
+        this.totalDetections = document.getElementById('totalDetections');
+    }
+
+    initializeState() {
+        this.originalImage = null;
+        this.detectedRects = [];
+        this.detectedFaces = [];
+        this.blurStrength = parseInt(this.blurSlider.value);
         this.userName = '';
-        this.detectedItems = [];
-        
-        this.initializeEventListeners();
-        this.setupRegexPatterns();
+        this.faceApiLoaded = false;
+        this.updateBlurPreview();
     }
-    
-    setupRegexPatterns() {
-        this.patterns = {
-            email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
-            phone: /(\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g,
-            creditCard: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
-            address: /\b\d+\s+[A-Za-z0-9\s,.-]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct|Place|Pl)\b/gi
-        };
+
+    bindEvents() {
+        // File upload events
+        this.imageUpload.addEventListener('change', (e) => this.handleFileSelect(e));
+        this.uploadSection.addEventListener('click', () => this.imageUpload.click());
+        this.uploadSection.addEventListener('dragover', (e) => this.handleDragOver(e));
+        this.uploadSection.addEventListener('drop', (e) => this.handleDrop(e));
+        this.uploadSection.addEventListener('dragleave', () => this.uploadSection.classList.remove('dragover'));
+
+        // Control events
+        this.blurSlider.addEventListener('input', (e) => this.handleBlurChange(e));
+        this.blurNameCheck.addEventListener('change', (e) => this.handleNameBlurToggle(e));
+        this.userNameInput.addEventListener('input', (e) => this.handleNameInput(e));
+        
+        // Detection setting changes
+        [this.detectEmails, this.detectPhones, this.detectFaces, this.detectAddresses, this.detectCreditCards]
+            .forEach(checkbox => checkbox.addEventListener('change', () => this.reprocessImage()));
+
+        // Button events
+        this.downloadBtn.addEventListener('click', () => this.downloadImage());
+        this.resetBtn.addEventListener('click', () => this.resetAll());
     }
-    
-    initializeEventListeners() {
-        const uploadArea = document.getElementById('uploadArea');
-        const imageInput = document.getElementById('imageInput');
-        const processBtn = document.getElementById('processBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const blurStrength = document.getElementById('blurStrength');
-        const blurNamesCheckbox = document.getElementById('blurNames');
-        const nameModal = document.getElementById('nameModal');
-        const confirmNameBtn = document.getElementById('confirmName');
-        const cancelNameBtn = document.getElementById('cancelName');
-        
-        // Upload area events
-        uploadArea.addEventListener('click', () => imageInput.click());
-        uploadArea.addEventListener('dragover', this.handleDragOver.bind(this));
-        uploadArea.addEventListener('drop', this.handleDrop.bind(this));
-        uploadArea.addEventListener('dragleave', this.handleDragLeave.bind(this));
-        
-        // File input
-        imageInput.addEventListener('change', this.handleFileSelect.bind(this));
-        
-        // Process button
-        processBtn.addEventListener('click', this.processImage.bind(this));
-        
-        // Download button
-        downloadBtn.addEventListener('click', this.downloadImage.bind(this));
-        
-        // Blur strength slider
-        blurStrength.addEventListener('input', (e) => {
-            this.blurStrength = parseInt(e.target.value);
-            document.getElementById('blurValue').textContent = this.blurStrength;
-            if (this.detectedItems.length > 0) {
-                this.applyBlurring();
-            }
-        });
-        
-        // Name checkbox
-        blurNamesCheckbox.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                nameModal.style.display = 'flex';
-            } else {
-                this.userName = '';
-            }
-        });
-        
-        // Name modal events
-        confirmNameBtn.addEventListener('click', () => {
-            this.userName = document.getElementById('userNameInput').value.trim();
-            nameModal.style.display = 'none';
-            if (!this.userName) {
-                blurNamesCheckbox.checked = false;
-            }
-        });
-        
-        cancelNameBtn.addEventListener('click', () => {
-            nameModal.style.display = 'none';
-            blurNamesCheckbox.checked = false;
-            document.getElementById('userNameInput').value = '';
-        });
-    }
-    
-    handleDragOver(e) {
-        e.preventDefault();
-        document.getElementById('uploadArea').classList.add('dragover');
-    }
-    
-    handleDragLeave(e) {
-        e.preventDefault();
-        document.getElementById('uploadArea').classList.remove('dragover');
-    }
-    
-    handleDrop(e) {
-        e.preventDefault();
-        document.getElementById('uploadArea').classList.remove('dragover');
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            this.loadImage(files[0]);
+
+    async loadFaceApiModels() {
+        try {
+            await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights');
+            this.faceApiLoaded = true;
+        } catch (error) {
+            console.warn('Face detection unavailable:', error);
+            this.showToast('Face detection unavailable', 'warning');
         }
     }
-    
+
+    handleDragOver(e) {
+        e.preventDefault();
+        this.uploadSection.classList.add('dragover');
+    }
+
+    handleDrop(e) {
+        e.preventDefault();
+        this.uploadSection.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            this.processFile(files[0]);
+        }
+    }
+
     handleFileSelect(e) {
         const file = e.target.files[0];
         if (file) {
-            this.loadImage(file);
+            this.processFile(file);
         }
     }
-    
-    loadImage(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                this.currentImage = img;
-                this.setupCanvas(img);
-                this.showControls();
-            };
-            img.src = e.target.result;
+
+    processFile(file) {
+        if (!this.validateFile(file)) return;
+
+        const img = new Image();
+        img.onload = () => {
+            this.originalImage = img;
+            this.setupCanvas(img);
+            this.processImage(img);
         };
-        reader.readAsDataFile(file);
+        img.src = URL.createObjectURL(file);
     }
-    
+
+    validateFile(file) {
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+
+        if (!validTypes.includes(file.type)) {
+            this.showToast('Please upload a PNG or JPEG image', 'error');
+            return false;
+        }
+
+        if (file.size > maxSize) {
+            this.showToast('File size must be less than 10MB', 'error');
+            return false;
+        }
+
+        return true;
+    }
+
     setupCanvas(img) {
-        // Resize image to fit container while maintaining aspect ratio
-        const maxWidth = 800;
-        const maxHeight = 600;
+        const maxWidth = 700;
+        const maxHeight = 500;
         
         let { width, height } = img;
         
-        if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
+        if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width *= ratio;
+            height *= ratio;
         }
-        
-        if (height > maxHeight) {
-            width = (width * maxHeight) / height;
-            height = maxHeight;
-        }
-        
+
         this.canvas.width = width;
         this.canvas.height = height;
-        
-        this.ctx.drawImage(img, 0, 0, width, height);
-        this.originalImageData = this.ctx.getImageData(0, 0, width, height);
-        
-        document.getElementById('canvasContainer').style.display = 'block';
+        this.canvas.style.display = 'block';
+        this.placeholder.style.display = 'none';
     }
-    
-    showControls() {
-        document.getElementById('privacyOptions').style.display = 'grid';
-        document.getElementById('controls').style.display = 'block';
-    }
-    
-    async processImage() {
-        if (!this.currentImage) return;
+
+    async processImage(img) {
+        this.showLoading(true, 'Analyzing image...');
+        this.updateProgress(10);
         
-        this.showLoading(true);
-        this.detectedItems = [];
+        // Draw original image
+        this.drawImage(img);
         
+        // Reset detection arrays
+        this.detectedRects = [];
+        this.detectedFaces = [];
+
         try {
-            // Use Tesseract.js to extract text
-            const { data: { text, words } } = await Tesseract.recognize(this.canvas, 'eng', {
-                logger: m => console.log(m)
-            });
+            // OCR Processing
+            this.updateProgress(30);
+            this.updateLoadingText('Detecting text...');
+            await this.performOCR(img);
             
-            console.log('Extracted text:', text);
-            
-            // Find sensitive information
-            await this.detectSensitiveInfo(text, words);
-            
+            // Face Detection
+            if (this.detectFaces.checked && this.faceApiLoaded) {
+                this.updateProgress(70);
+                this.updateLoadingText('Detecting faces...');
+                await this.performFaceDetection(img);
+            }
+
             // Apply blurring
-            this.applyBlurring();
+            this.updateProgress(90);
+            this.updateLoadingText('Applying privacy filters...');
+            await this.applyBlurring();
             
-            document.getElementById('downloadBtn').style.display = 'inline-block';
+            this.updateProgress(100);
+            this.showLoading(false);
+            this.updateStats();
+            this.showControls(true);
+            this.showToast('Image processed successfully!', 'success');
             
         } catch (error) {
-            console.error('Error processing image:', error);
-            alert('Error processing image. Please try again.');
-        } finally {
+            console.error('Processing error:', error);
             this.showLoading(false);
+            this.showToast('Error processing image', 'error');
         }
     }
-    
-    async detectSensitiveInfo(text, words) {
-        const checkboxes = {
-            blurEmails: document.getElementById('blurEmails').checked,
-            blurPhones: document.getElementById('blurPhones').checked,
-            blurCards: document.getElementById('blurCards').checked,
-            blurAddresses: document.getElementById('blurAddresses').checked,
-            blurNames: document.getElementById('blurNames').checked && this.userName
-        };
-        
-        // Process each word with its bounding box
-        words.forEach(word => {
-            const wordText = word.text;
+
+    async performOCR(img) {
+        const { data } = await Tesseract.recognize(img, 'eng', {
+            logger: () => {} // Suppress logs
+        });
+
+        data.words.forEach(word => {
+            const text = word.text.trim();
+            if (!text) return;
+
             const bbox = word.bbox;
-            
-            // Scale bounding box to canvas size
-            const scaleX = this.canvas.width / word.page.width;
-            const scaleY = this.canvas.height / word.page.height;
-            
-            const scaledBbox = {
-                x0: bbox.x0 * scaleX,
-                y0: bbox.y0 * scaleY,
-                x1: bbox.x1 * scaleX,
-                y1: bbox.y1 * scaleY
+            if (this.isPrivateInfo(text)) {
+                const rect = this.mapBboxToCanvas(bbox, img);
+                this.detectedRects.push(rect);
+            }
+        });
+    }
+
+    async performFaceDetection(img) {
+        if (!this.faceApiLoaded) return;
+
+        const detections = await faceapi.detectAllFaces(img, new faceapi.TinyFaceDetectorOptions());
+        
+        detections.forEach(detection => {
+            const box = detection.box;
+            const rect = {
+                x: (box.x / img.width) * this.canvas.width,
+                y: (box.y / img.height) * this.canvas.height,
+                w: (box.width / img.width) * this.canvas.width,
+                h: (box.height / img.height) * this.canvas.height
             };
-            
-            // Check for emails
-            if (checkboxes.blurEmails && this.patterns.email.test(wordText)) {
-                this.detectedItems.push({
-                    type: 'email',
-                    bbox: scaledBbox,
-                    text: wordText
-                });
-            }
-            
-            // Check for phone numbers
-            if (checkboxes.blurPhones && this.patterns.phone.test(wordText)) {
-                this.detectedItems.push({
-                    type: 'phone',
-                    bbox: scaledBbox,
-                    text: wordText
-                });
-            }
-            
-            // Check for credit cards
-            if (checkboxes.blurCards && this.patterns.creditCard.test(wordText)) {
-                this.detectedItems.push({
-                    type: 'creditCard',
-                    bbox: scaledBbox,
-                    text: wordText
-                });
-            }
-            
-            // Check for addresses
-            if (checkboxes.blurAddresses && this.patterns.address.test(wordText)) {
-                this.detectedItems.push({
-                    type: 'address',
-                    bbox: scaledBbox,
-                    text: wordText
-                });
-            }
-            
-            // Check for user name
-            if (checkboxes.blurNames && this.userName && 
-                wordText.toLowerCase().includes(this.userName.toLowerCase())) {
-                this.detectedItems.push({
-                    type: 'name',
-                    bbox: scaledBbox,
-                    text: wordText
-                });
-            }
+            this.detectedFaces.push(rect);
         });
+    }
+
+    mapBboxToCanvas(bbox, img) {
+        return {
+            x: (bbox.x0 / img.width) * this.canvas.width,
+            y: (bbox.y0 / img.height) * this.canvas.height,
+            w: ((bbox.x1 - bbox.x0) / img.width) * this.canvas.width,
+            h: ((bbox.y1 - bbox.y0) / img.height) * this.canvas.height
+        };
+    }
+
+    isPrivateInfo(text) {
+        const patterns = {
+            email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/,
+            phone: /(\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/,
+            creditCard: /\b(?:\d[ -]*?){13,16}\b/,
+            address: /\d+\s+[A-Za-z0-9\s,]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct|Place|Pl)/i
+        };
+
+        if (this.detectEmails.checked && patterns.email.test(text)) return true;
+        if (this.detectPhones.checked && patterns.phone.test(text)) return true;
+        if (this.detectCreditCards.checked && patterns.creditCard.test(text)) return true;
+        if (this.detectAddresses.checked && patterns.address.test(text)) return true;
+        if (this.blurNameCheck.checked && this.userName && 
+            text.toLowerCase().includes(this.userName.toLowerCase())) return true;
+
+        return false;
+    }
+
+    async applyBlurring() {
+        // Redraw original image
+        this.drawImage(this.originalImage);
         
-        // Simulate face detection (placeholder - you could integrate face-api.js here)
-        if (document.getElementById('blurFaces').checked) {
-            // Add some mock face detection areas
-            this.detectedItems.push({
-                type: 'face',
-                bbox: {
-                    x0: this.canvas.width * 0.1,
-                    y0: this.canvas.height * 0.1,
-                    x1: this.canvas.width * 0.3,
-                    y1: this.canvas.height * 0.4
-                },
-                text: 'Face detected'
-            });
+        // Apply blur to detected regions
+        const allRects = [...this.detectedRects, ...this.detectedFaces];
+        
+        for (const rect of allRects) {
+            await this.blurRegion(rect);
         }
-        
-        console.log('Detected items:', this.detectedItems);
     }
-    
-    applyBlurring() {
-        // Restore original image
-        this.ctx.putImageData(this.originalImageData, 0, 0);
-        
-        // Apply blur to detected areas
-        this.detectedItems.forEach(item => {
-            this.blurArea(item.bbox);
-        });
-    }
-    
-    blurArea(bbox) {
-        const x = Math.floor(bbox.x0);
-        const y = Math.floor(bbox.y0);
-        const width = Math.ceil(bbox.x1 - bbox.x0);
-        const height = Math.ceil(bbox.y1 - bbox.y0);
-        
-        // Create a temporary canvas for blurring
+
+    async blurRegion(rect) {
+        // Create temporary canvas for blurring
         const tempCanvas = document.createElement('canvas');
         const tempCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = width;
-        tempCanvas.height = height;
         
-        // Copy the area to temp canvas
-        const imageData = this.ctx.getImageData(x, y, width, height);
-        tempCtx.putImageData(imageData, 0, 0);
+        tempCanvas.width = rect.w;
+        tempCanvas.height = rect.h;
         
-        // Apply CSS filter blur
+        // Extract region
+        tempCtx.drawImage(this.canvas, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
+        
+        // Apply blur
         tempCtx.filter = `blur(${this.blurStrength}px)`;
         tempCtx.drawImage(tempCanvas, 0, 0);
         
-        // Draw blurred area back to main canvas
-        this.ctx.drawImage(tempCanvas, x, y);
+        // Draw blurred region back
+        this.ctx.drawImage(tempCanvas, 0, 0, rect.w, rect.h, rect.x, rect.y, rect.w, rect.h);
         
-        // Draw black border around blurred area
-        this.ctx.strokeStyle = 'black';
+        // Draw border
+        this.ctx.strokeStyle = '#ef4444';
         this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(x, y, width, height);
+        this.ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
     }
-    
+
+    drawImage(img) {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    handleBlurChange(e) {
+        this.blurStrength = parseInt(e.target.value);
+        this.blurValue.textContent = this.blurStrength;
+        this.updateBlurPreview();
+        
+        if (this.originalImage) {
+            this.reprocessImage();
+        }
+    }
+
+    updateBlurPreview() {
+        this.blurPreview.style.filter = `blur(${Math.min(this.blurStrength / 4, 3)}px)`;
+    }
+
+    handleNameBlurToggle(e) {
+        this.userNameInput.style.display = e.target.checked ? 'block' : 'none';
+        if (!e.target.checked) {
+            this.userNameInput.value = '';
+            this.userName = '';
+        }
+        if (this.originalImage) {
+            this.reprocessImage();
+        }
+    }
+
+    handleNameInput(e) {
+        this.userName = e.target.value.trim();
+        if (this.originalImage) {
+            this.reprocessImage();
+        }
+    }
+
+    async reprocessImage() {
+        if (this.originalImage) {
+            await this.processImage(this.originalImage);
+        }
+    }
+
+    updateStats() {
+        const textCount = this.detectedRects.length;
+        const faceCount = this.detectedFaces.length;
+        const total = textCount + faceCount;
+
+        this.textDetections.textContent = textCount;
+        this.faceDetections.textContent = faceCount;
+        this.totalDetections.textContent = total;
+        
+        this.detectionStats.style.display = total > 0 ? 'grid' : 'none';
+    }
+
+    showLoading(show, text = 'Processing...') {
+        this.loadingOverlay.style.display = show ? 'flex' : 'none';
+        if (show) {
+            this.updateLoadingText(text);
+            this.updateProgress(0);
+        }
+    }
+
+    updateLoadingText(text) {
+        this.loadingText.textContent = text;
+    }
+
+    updateProgress(percent) {
+        this.progressBar.style.width = `${percent}%`;
+    }
+
+    showControls(show) {
+        this.downloadBtn.style.display = show ? 'inline-block' : 'none';
+        this.resetBtn.style.display = show ? 'inline-block' : 'none';
+    }
+
     downloadImage() {
         const link = document.createElement('a');
-        link.download = 'privacy-cleaned-screenshot.png';
-        link.href = this.canvas.toDataURL();
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        link.download = `privacy-cleaned-${timestamp}.png`;
+        link.href = this.canvas.toDataURL('image/png');
         link.click();
+        
+        this.showToast('Image downloaded successfully!', 'success');
     }
-    
-    showLoading(show) {
-        document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
-        document.getElementById('processBtn').disabled = show;
+
+    resetAll() {
+        this.originalImage = null;
+        this.detectedRects = [];
+        this.detectedFaces = [];
+        this.canvas.style.display = 'none';
+        this.placeholder.style.display = 'block';
+        this.showControls(false);
+        this.detectionStats.style.display = 'none';
+        this.imageUpload.value = '';
+        this.userNameInput.value = '';
+        this.userName = '';
+        this.blurNameCheck.checked = false;
+        this.userNameInput.style.display = 'none';
+    }
+
+    showToast(message, type = 'info') {
+        const toastContainer = document.querySelector('.toast-container');
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+        toast.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 5000);
     }
 }
 
-// Initialize the app when page loads
+// Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
-    new PrivacyShield();
+    new PrivacyScreenshotCleaner();
 });
