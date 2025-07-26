@@ -7,7 +7,7 @@ class PrivacyScreenshotCleaner {
         this.loadFaceApiModels();
         this.setupProgressRing();
     }
-
+//k
     initializeElements() {
         // File upload elements
         this.imageUpload = document.getElementById('imageUpload');
