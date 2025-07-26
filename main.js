@@ -91,7 +91,7 @@ class PrivacyScreenshotCleaner {
         this.detectedFaces = [];
         this.detectedItems = [];
         this.undoStack = [];
-        this.blurStrength = parseInt(this.blurSlider.value);
+        this.blurStrength = parseInt(this.blurSlider?.value || 15);
         this.userName = '';
         this.customText = '';
         this.faceApiLoaded = false;
@@ -123,50 +123,99 @@ class PrivacyScreenshotCleaner {
 
     bindEvents() {
         // File upload events
-        this.imageUpload.addEventListener('change', (e) => this.handleFileSelect(e));
-        this.uploadSection.addEventListener('click', () => this.imageUpload.click());
-        this.uploadSection.addEventListener('dragover', (e) => this.handleDragOver(e));
-        this.uploadSection.addEventListener('drop', (e) => this.handleDrop(e));
-        this.uploadSection.addEventListener('dragleave', () => this.uploadSection.classList.remove('dragover'));
+        if (this.imageUpload) {
+            this.imageUpload.addEventListener('change', (e) => this.handleFileSelect(e));
+        }
+        if (this.uploadSection) {
+            this.uploadSection.addEventListener('click', () => this.imageUpload?.click());
+            this.uploadSection.addEventListener('dragover', (e) => this.handleDragOver(e));
+            this.uploadSection.addEventListener('drop', (e) => this.handleDrop(e));
+            this.uploadSection.addEventListener('dragleave', () => this.uploadSection.classList.remove('dragover'));
+        }
 
         // Background removal events
-        this.bgRemoveFloatBtn.addEventListener('click', () => this.openBgRemoveModal());
-        this.closeBgModal.addEventListener('click', () => this.closeBgRemoveModal());
-        this.bgRemoveModal.addEventListener('click', (e) => {
-            if (e.target === this.bgRemoveModal) this.closeBgRemoveModal();
-        });
-        this.bgRemoveUpload.addEventListener('click', () => this.bgImageUpload.click());
-        this.bgRemoveUpload.addEventListener('dragover', (e) => this.handleBgDragOver(e));
-        this.bgRemoveUpload.addEventListener('drop', (e) => this.handleBgDrop(e));
-        this.bgRemoveUpload.addEventListener('dragleave', () => this.bgRemoveUpload.classList.remove('dragover'));
-        this.bgImageUpload.addEventListener('change', (e) => this.handleBgFileSelect(e));
-        this.removeBgBtn.addEventListener('click', () => this.removeBackground());
-        this.downloadBgBtn.addEventListener('click', () => this.downloadBgResult());
-        this.resetBgBtn.addEventListener('click', () => this.resetBgRemover());
+        if (this.bgRemoveFloatBtn) {
+            this.bgRemoveFloatBtn.addEventListener('click', () => this.openBgRemoveModal());
+        }
+        if (this.closeBgModal) {
+            this.closeBgModal.addEventListener('click', () => this.closeBgRemoveModal());
+        }
+        if (this.bgRemoveModal) {
+            this.bgRemoveModal.addEventListener('click', (e) => {
+                if (e.target === this.bgRemoveModal) this.closeBgRemoveModal();
+            });
+        }
+        if (this.bgRemoveUpload) {
+            this.bgRemoveUpload.addEventListener('click', () => this.bgImageUpload?.click());
+            this.bgRemoveUpload.addEventListener('dragover', (e) => this.handleBgDragOver(e));
+            this.bgRemoveUpload.addEventListener('drop', (e) => this.handleBgDrop(e));
+            this.bgRemoveUpload.addEventListener('dragleave', () => this.bgRemoveUpload.classList.remove('dragover'));
+        }
+        if (this.bgImageUpload) {
+            this.bgImageUpload.addEventListener('change', (e) => this.handleBgFileSelect(e));
+        }
+        if (this.removeBgBtn) {
+            this.removeBgBtn.addEventListener('click', () => this.removeBackground());
+        }
+        if (this.downloadBgBtn) {
+            this.downloadBgBtn.addEventListener('click', () => this.downloadBgResult());
+        }
+        if (this.resetBgBtn) {
+            this.resetBgBtn.addEventListener('click', () => this.resetBgRemover());
+        }
 
         // New feature events
-        this.pasteBtn.addEventListener('click', () => this.handlePasteFromClipboard());
-        this.cameraBtn.addEventListener('click', () => this.handleCameraCapture());
-        this.beforeAfterMode.addEventListener('change', (e) => this.toggleBeforeAfterMode(e.target.checked));
+        if (this.pasteBtn) {
+            this.pasteBtn.addEventListener('click', () => this.handlePasteFromClipboard());
+        }
+        if (this.cameraBtn) {
+            this.cameraBtn.addEventListener('click', () => this.handleCameraCapture());
+        }
+        if (this.beforeAfterMode) {
+            this.beforeAfterMode.addEventListener('change', (e) => this.toggleBeforeAfterMode(e.target.checked));
+        }
 
         // Control events
-        this.blurSlider.addEventListener('input', (e) => this.handleBlurChange(e));
-        this.blurStyle.addEventListener('change', () => this.reprocessImage());
-        this.blurNameCheck.addEventListener('change', (e) => this.handleNameBlurToggle(e));
-        this.userNameInput.addEventListener('input', (e) => this.handleNameInput(e));
-        this.detectCustom.addEventListener('change', (e) => this.handleCustomTextToggle(e));
-        this.customTextInput.addEventListener('input', (e) => this.handleCustomTextInput(e));
+        if (this.blurSlider) {
+            this.blurSlider.addEventListener('input', (e) => this.handleBlurChange(e));
+        }
+        if (this.blurStyle) {
+            this.blurStyle.addEventListener('change', () => this.reprocessImage());
+        }
+        if (this.blurNameCheck) {
+            this.blurNameCheck.addEventListener('change', (e) => this.handleNameBlurToggle(e));
+        }
+        if (this.userNameInput) {
+            this.userNameInput.addEventListener('input', (e) => this.handleNameInput(e));
+        }
+        if (this.detectCustom) {
+            this.detectCustom.addEventListener('change', (e) => this.handleCustomTextToggle(e));
+        }
+        if (this.customTextInput) {
+            this.customTextInput.addEventListener('input', (e) => this.handleCustomTextInput(e));
+        }
         
         // Detection setting changes
         [this.detectEmails, this.detectPhones, this.detectFaces, this.detectAddresses, 
-         this.detectCreditCards, this.detectSSN].forEach(checkbox => 
-            checkbox.addEventListener('change', () => this.reprocessImage()));
+         this.detectCreditCards, this.detectSSN].forEach(checkbox => {
+            if (checkbox) {
+                checkbox.addEventListener('change', () => this.reprocessImage());
+            }
+        });
 
         // Button events
-        this.downloadBtn.addEventListener('click', () => this.downloadImage());
-        this.downloadOriginalBtn.addEventListener('click', () => this.downloadOriginalImage());
-        this.undoBtn.addEventListener('click', () => this.undoLastAction());
-        this.resetBtn.addEventListener('click', () => this.resetAll());
+        if (this.downloadBtn) {
+            this.downloadBtn.addEventListener('click', () => this.downloadImage());
+        }
+        if (this.downloadOriginalBtn) {
+            this.downloadOriginalBtn.addEventListener('click', () => this.downloadOriginalImage());
+        }
+        if (this.undoBtn) {
+            this.undoBtn.addEventListener('click', () => this.undoLastAction());
+        }
+        if (this.resetBtn) {
+            this.resetBtn.addEventListener('click', () => this.resetAll());
+        }
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
@@ -174,23 +223,27 @@ class PrivacyScreenshotCleaner {
 
     // Background Removal Methods
     openBgRemoveModal() {
-        this.bgRemoveModal.classList.add('show');
-        document.body.style.overflow = 'hidden';
+        if (this.bgRemoveModal) {
+            this.bgRemoveModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
     }
 
     closeBgRemoveModal() {
-        this.bgRemoveModal.classList.remove('show');
-        document.body.style.overflow = 'auto';
+        if (this.bgRemoveModal) {
+            this.bgRemoveModal.classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
     }
 
     handleBgDragOver(e) {
         e.preventDefault();
-        this.bgRemoveUpload.classList.add('dragover');
+        this.bgRemoveUpload?.classList.add('dragover');
     }
 
     handleBgDrop(e) {
         e.preventDefault();
-        this.bgRemoveUpload.classList.remove('dragover');
+        this.bgRemoveUpload?.classList.remove('dragover');
         const files = e.dataTransfer.files;
         if (files.length > 0) {
             this.processBgFile(files[0]);
@@ -218,8 +271,12 @@ class PrivacyScreenshotCleaner {
         const reader = new FileReader();
         reader.onload = (e) => {
             this.bgCurrentImage = e.target.result;
-            this.originalBgImage.src = this.bgCurrentImage;
-            this.removeBgBtn.disabled = false;
+            if (this.originalBgImage) {
+                this.originalBgImage.src = this.bgCurrentImage;
+            }
+            if (this.removeBgBtn) {
+                this.removeBgBtn.disabled = false;
+            }
             this.showToast('Image loaded! Click "Remove Background" to process', 'success');
         };
         reader.readAsDataURL(file);
@@ -231,8 +288,12 @@ class PrivacyScreenshotCleaner {
             return;
         }
 
-        this.bgLoadingOverlay.style.display = 'flex';
-        this.removeBgBtn.disabled = true;
+        if (this.bgLoadingOverlay) {
+            this.bgLoadingOverlay.style.display = 'flex';
+        }
+        if (this.removeBgBtn) {
+            this.removeBgBtn.disabled = true;
+        }
 
         try {
             // Convert data URL to blob
@@ -261,10 +322,16 @@ class PrivacyScreenshotCleaner {
             const resultUrl = URL.createObjectURL(resultBlob);
             
             this.bgProcessedImage = resultUrl;
-            this.processedBgImage.src = resultUrl;
+            if (this.processedBgImage) {
+                this.processedBgImage.src = resultUrl;
+            }
             
-            this.bgResultContainer.style.display = 'grid';
-            this.bgDownloadSection.style.display = 'block';
+            if (this.bgResultContainer) {
+                this.bgResultContainer.style.display = 'grid';
+            }
+            if (this.bgDownloadSection) {
+                this.bgDownloadSection.style.display = 'block';
+            }
             
             this.showToast('Background removed successfully!', 'success');
 
@@ -272,8 +339,12 @@ class PrivacyScreenshotCleaner {
             console.error('Background removal error:', error);
             this.showToast('Failed to remove background. Please try again.', 'error');
         } finally {
-            this.bgLoadingOverlay.style.display = 'none';
-            this.removeBgBtn.disabled = false;
+            if (this.bgLoadingOverlay) {
+                this.bgLoadingOverlay.style.display = 'none';
+            }
+            if (this.removeBgBtn) {
+                this.removeBgBtn.disabled = false;
+            }
         }
     }
 
@@ -296,12 +367,12 @@ class PrivacyScreenshotCleaner {
     resetBgRemover() {
         this.bgCurrentImage = null;
         this.bgProcessedImage = null;
-        this.originalBgImage.src = '';
-        this.processedBgImage.src = '';
-        this.bgResultContainer.style.display = 'none';
-        this.bgDownloadSection.style.display = 'none';
-        this.removeBgBtn.disabled = true;
-        this.bgImageUpload.value = '';
+        if (this.originalBgImage) this.originalBgImage.src = '';
+        if (this.processedBgImage) this.processedBgImage.src = '';
+        if (this.bgResultContainer) this.bgResultContainer.style.display = 'none';
+        if (this.bgDownloadSection) this.bgDownloadSection.style.display = 'none';
+        if (this.removeBgBtn) this.removeBgBtn.disabled = true;
+        if (this.bgImageUpload) this.bgImageUpload.value = '';
         this.showToast('Background remover reset', 'info');
     }
 
@@ -381,7 +452,7 @@ class PrivacyScreenshotCleaner {
         modal.className = 'bg-remove-modal show';
         modal.innerHTML = `
             <div class="bg-remove-content">
-                <button class="close-modal" onclick="this.closest('.bg-remove-modal').remove(); arguments[0].stream.getTracks().forEach(track => track.stop());">
+                <button class="close-modal">
                     <i class="bi bi-x"></i>
                 </button>
                 <div class="bg-remove-header">
@@ -392,7 +463,7 @@ class PrivacyScreenshotCleaner {
                     <video style="max-width: 100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);" autoplay></video>
                 </div>
                 <div class="text-center">
-                    <button class="bg-remove-btn" onclick="this.capturePhoto()">
+                    <button class="bg-remove-btn">
                         <i class="bi bi-camera"></i> Capture Photo
                     </button>
                 </div>
@@ -429,7 +500,9 @@ class PrivacyScreenshotCleaner {
     }
 
     toggleBeforeAfterMode(enabled) {
-        this.beforeAfterContainer.style.display = enabled ? 'grid' : 'none';
+        if (this.beforeAfterContainer) {
+            this.beforeAfterContainer.style.display = enabled ? 'grid' : 'none';
+        }
         if (enabled && this.originalImage) {
             this.updateBeforeAfterView();
         }
@@ -451,7 +524,9 @@ class PrivacyScreenshotCleaner {
 
     handleBlurChange(e) {
         this.blurStrength = parseInt(e.target.value);
-        this.blurValue.textContent = this.blurStrength;
+        if (this.blurValue) {
+            this.blurValue.textContent = this.blurStrength;
+        }
         this.updateBlurPreview();
         
         if (this.originalImage) {
@@ -460,15 +535,19 @@ class PrivacyScreenshotCleaner {
     }
 
     updateBlurPreview() {
+        if (!this.blurPreview || !this.blurStyle) return;
+        
         const style = this.blurStyle.value;
         switch(style) {
             case 'gaussian':
                 this.blurPreview.style.filter = `blur(${Math.min(this.blurStrength/3, 10)}px)`;
                 this.blurPreview.style.background = '#f3f4f6';
+                this.blurPreview.style.color = '#374151';
                 break;
             case 'pixelate':
                 this.blurPreview.style.filter = 'none';
                 this.blurPreview.style.background = `repeating-conic-gradient(#f3f4f6 0% 25%, #e5e7eb 25% 50%) 0 0/8px 8px`;
+                this.blurPreview.style.color = '#374151';
                 break;
             case 'blackout':
                 this.blurPreview.style.filter = 'none';
@@ -479,12 +558,14 @@ class PrivacyScreenshotCleaner {
     }
 
     handleNameBlurToggle(e) {
-        this.userNameInput.style.display = e.target.checked ? 'block' : 'none';
-        if (e.target.checked) {
-            this.userNameInput.focus();
-        } else {
-            this.userName = '';
-            this.reprocessImage();
+        if (this.userNameInput) {
+            this.userNameInput.style.display = e.target.checked ? 'block' : 'none';
+            if (e.target.checked) {
+                this.userNameInput.focus();
+            } else {
+                this.userName = '';
+                this.reprocessImage();
+            }
         }
     }
 
@@ -496,12 +577,14 @@ class PrivacyScreenshotCleaner {
     }
 
     handleCustomTextToggle(e) {
-        this.customTextInput.style.display = e.target.checked ? 'block' : 'none';
-        if (e.target.checked) {
-            this.customTextInput.focus();
-        } else {
-            this.customText = '';
-            this.reprocessImage();
+        if (this.customTextInput) {
+            this.customTextInput.style.display = e.target.checked ? 'block' : 'none';
+            if (e.target.checked) {
+                this.customTextInput.focus();
+            } else {
+                this.customText = '';
+                this.reprocessImage();
+            }
         }
     }
 
@@ -514,12 +597,12 @@ class PrivacyScreenshotCleaner {
 
     handleDragOver(e) {
         e.preventDefault();
-        this.uploadSection.classList.add('dragover');
+        this.uploadSection?.classList.add('dragover');
     }
 
     handleDrop(e) {
         e.preventDefault();
-        this.uploadSection.classList.remove('dragover');
+        this.uploadSection?.classList.remove('dragover');
         const files = e.dataTransfer.files;
         if (files.length > 0) {
             this.processFile(files[0]);
@@ -582,13 +665,15 @@ class PrivacyScreenshotCleaner {
     }
 
     hideplaceholder() {
-        this.placeholder.style.display = 'none';
+        if (this.placeholder) {
+            this.placeholder.style.display = 'none';
+        }
     }
 
     showButtons() {
-        this.downloadBtn.style.display = 'inline-block';
-        this.downloadOriginalBtn.style.display = 'inline-block';
-        this.resetBtn.style.display = 'inline-block';
+        if (this.downloadBtn) this.downloadBtn.style.display = 'inline-block';
+        if (this.downloadOriginalBtn) this.downloadOriginalBtn.style.display = 'inline-block';
+        if (this.resetBtn) this.resetBtn.style.display = 'inline-block';
     }
 
     async processImage() {
@@ -610,7 +695,7 @@ class PrivacyScreenshotCleaner {
 
             // Face Detection
             this.updateProgressRing(60);
-            if (this.detectFaces.checked && this.faceApiLoaded) {
+            if (this.detectFaces?.checked && this.faceApiLoaded) {
                 await this.detectFacesInImage();
             }
 
@@ -623,14 +708,16 @@ class PrivacyScreenshotCleaner {
             this.updateStats();
             this.updateDetectedItemsList();
             
-            if (this.beforeAfterMode.checked) {
+            if (this.beforeAfterMode?.checked) {
                 this.updateBeforeAfterView();
             }
 
             this.hideLoading();
             
             const processingTime = ((Date.now() - this.startTime) / 1000).toFixed(1);
-            this.processingTime.textContent = processingTime;
+            if (this.processingTime) {
+                this.processingTime.textContent = processingTime;
+            }
             
             this.showToast(`Processing completed in ${processingTime}s`, 'success');
 
@@ -672,7 +759,8 @@ class PrivacyScreenshotCleaner {
 
             // Check each pattern
             Object.entries(patterns).forEach(([type, pattern]) => {
-                if (this[`detect${type.charAt(0).toUpperCase() + type.slice(1)}s`]?.checked) {
+                const checkboxName = `detect${type.charAt(0).toUpperCase() + type.slice(1)}s`;
+                if (this[checkboxName]?.checked) {
                     if (pattern.test(text)) {
                         this.addDetectedRect(bbox, type, text);
                     }
@@ -680,13 +768,13 @@ class PrivacyScreenshotCleaner {
             });
 
             // Check custom name
-            if (this.blurNameCheck.checked && this.userName && 
+            if (this.blurNameCheck?.checked && this.userName && 
                 text.toLowerCase().includes(this.userName.toLowerCase())) {
                 this.addDetectedRect(bbox, 'name', text);
             }
 
             // Check custom text
-            if (this.detectCustom.checked && this.customText && 
+            if (this.detectCustom?.checked && this.customText && 
                 text.toLowerCase().includes(this.customText.toLowerCase())) {
                 this.addDetectedRect(bbox, 'custom', text);
             }
@@ -709,79 +797,10 @@ class PrivacyScreenshotCleaner {
 
     async loadFaceApiModels() {
         try {
-            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/model/';
-            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-            this.faceApiLoaded = true;
-            console.log('Face-API models loaded successfully');
-        } catch (error) {
-            console.error('Failed to load Face-API models:', error);
-            this.faceApiLoaded = false;
-        }
-    }
-
-    async detectFacesInImage() {
-        if (!this.faceApiLoaded) return;
-
-        try {
-            const detections = await faceapi.detectAllFaces(this.canvas, new faceapi.TinyFaceDetectorOptions());
-            
-            detections.forEach(detection => {
-                const box = detection.box;
-                const rect = {
-                    x: box.x,
-                    y: box.y,
-                    width: box.width,
-                    height: box.height,
-                    type: 'face'
-                };
-                
-                this.detectedFaces.push(rect);
-                this.detectedItems.push({ type: 'face', text: 'Human Face', method: 'AI Detection' });
-            });
-        } catch (error) {
-            console.error('Face detection error:', error);
-        }
-    }
-
-    applyBlurring() {
-        // Restore original image
-        this.ctx.putImageData(this.originalImageData, 0, 0);
-
-        // Apply blur to detected rectangles
-        [...this.detectedRects, ...this.detectedFaces].forEach(rect => {
-            this.applyBlurToRect(rect);
-        });
-    }
-
-    applyBlurToRect(rect) {
-        const { x, y, width, height } = rect;
-        const padding = 5;
-        
-        const blurX = Math.max(0, x - padding);
-        const blurY = Math.max(0, y - padding);
-        const blurWidth = Math.min(this.canvas.width - blurX, width + padding * 2);
-        const blurHeight = Math.min(this.canvas.height - blurY, height + padding * 2);
-
-        const style = this.blurStyle.value;
-        
-        switch(style) {
-            case 'gaussian':
-                this.applyGaussianBlur(blurX, blurY, blurWidth, blurHeight);
-                break;
-            case 'pixelate':
-                this.applyPixelation(blurX, blurY, blurWidth, blurHeight);
-                break;
-            case 'blackout':
-                this.applyBlackout(blurX, blurY, blurWidth, blurHeight);
-                break;
-        }
-    }
-
-    applyGaussianBlur(x, y, width, height) {
-        const imageData = this.ctx.getImageData(x, y, width, height);
-        const blurredData = this.gaussianBlur(imageData, this.blurStrength / 5);
-        this.ctx.putImageData(blurredData, x, y);
-    }
-
-    applyPixelation(x, y, width, height) {
-        const pixelSize = Math.max(
+            if (typeof faceapi !== 'undefined') {
+                const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/model/';
+                await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+                this.faceApiLoaded = true;
+                console.log('Face-API models loaded successfully');
+            }
+        } catch (
