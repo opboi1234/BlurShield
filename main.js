@@ -5,7 +5,8 @@ class PrivacyScreenshotCleaner {
         this.bindEvents();
         this.loadFaceApiModels();
         this.setupProgressRing();
-        this.updateBlurSample(); // live blur preview
+        this.updateBlurSample();
+        this.loadTheme();
     }
 
     initializeElements() {
@@ -52,6 +53,7 @@ class PrivacyScreenshotCleaner {
         this.faceDetections = document.getElementById('faceDetections');
         this.totalDetections = document.getElementById('totalDetections');
         this.processingTime = document.getElementById('processingTime');
+        this.darkModeToggle = document.getElementById('darkModeToggle');
     }
 
     initializeState() {
@@ -103,15 +105,17 @@ class PrivacyScreenshotCleaner {
         this.userNameInput.addEventListener('input', (e) => this.handleNameInput(e));
         this.detectCustom.addEventListener('change', (e) => this.handleCustomTextToggle(e));
         this.customTextInput.addEventListener('input', (e) => this.handleCustomTextInput(e));
-        [this.detectEmails, this.detectPhones, this.detectFaces, this.detectAddresses, 
-         this.detectCreditCards, this.detectSSN].forEach(checkbox => 
-            checkbox.addEventListener('change', () => this.reprocessImage()));
+        [
+            this.detectEmails, this.detectPhones, this.detectFaces, this.detectAddresses,
+            this.detectCreditCards, this.detectSSN
+        ].forEach(checkbox => checkbox.addEventListener('change', () => this.reprocessImage()));
         this.downloadBtn.addEventListener('click', () => this.downloadImage());
         this.downloadOriginalBtn.addEventListener('click', () => this.downloadOriginalImage());
         this.undoBtn.addEventListener('click', () => this.undoLastAction());
         this.resetBtn.addEventListener('click', () => this.resetAll());
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
         document.addEventListener('paste', (e) => this.handlePasteEvent(e));
+        this.darkModeToggle.addEventListener('change', () => this.toggleDarkMode());
     }
 
     showToast(message, type = 'info') {
@@ -123,7 +127,6 @@ class PrivacyScreenshotCleaner {
         setTimeout(() => toast.remove(), 3000);
     }
 
-    // ---- UPLOAD & IMAGE HANDLING ----
     handleFileSelect(e) {
         const file = e.target.files[0];
         if (file && this.validateImageFile(file)) {
@@ -132,13 +135,11 @@ class PrivacyScreenshotCleaner {
             this.showToast('Invalid file type or size!', 'danger');
         }
     }
-
     handleDragOver(e) {
         e.preventDefault();
         e.stopPropagation();
         this.uploadSection.classList.add('dragover');
     }
-
     handleDrop(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -150,12 +151,10 @@ class PrivacyScreenshotCleaner {
             this.showToast('Invalid file type or size!', 'danger');
         }
     }
-
     validateImageFile(file) {
         const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
         return validTypes.includes(file.type) && file.size <= 10 * 1024 * 1024;
     }
-
     loadImageFile(file) {
         const reader = new FileReader();
         reader.onload = (ev) => {
@@ -166,8 +165,6 @@ class PrivacyScreenshotCleaner {
         reader.readAsDataURL(file);
         this.showToast('Image loaded!', 'success');
     }
-
-    // ---- CAMERA ----
     handleCameraCapture() {
         if (!navigator.mediaDevices?.getUserMedia) {
             this.showToast('Camera not supported on this device.', 'danger');
@@ -192,12 +189,10 @@ class PrivacyScreenshotCleaner {
                     img.onload = () => this.displayImage(img);
                     img.src = tempCanvas.toDataURL('image/png');
                     this.showToast('Photo captured!', 'success');
-                }, 1000); // Wait for camera to adjust exposure
+                }, 1000);
             };
         }).catch(() => this.showToast('Camera access denied.', 'danger'));
     }
-
-    // ---- PASTE ----
     handlePasteFromClipboard() {
         navigator.clipboard.read().then(items => {
             for (const item of items) {
@@ -213,7 +208,6 @@ class PrivacyScreenshotCleaner {
             this.showToast('No image found in clipboard!', 'warning');
         }).catch(() => this.showToast('Clipboard access failed.', 'danger'));
     }
-
     handlePasteEvent(e) {
         if (e.clipboardData) {
             const items = e.clipboardData.items;
@@ -227,8 +221,6 @@ class PrivacyScreenshotCleaner {
             }
         }
     }
-
-    // ---- DISPLAY IMAGE ----
     displayImage(img) {
         this.originalImage = img;
         this.canvas.width = img.width;
@@ -242,8 +234,6 @@ class PrivacyScreenshotCleaner {
         this.reprocessImage();
         if (this.beforeAfterMode.checked) this.toggleBeforeAfterMode(true);
     }
-
-    // ---- BLUR PREVIEW ----
     updateBlurSample() {
         const ctx = this.blurSampleCanvas.getContext('2d');
         ctx.clearRect(0, 0, 60, 30);
@@ -252,7 +242,6 @@ class PrivacyScreenshotCleaner {
         ctx.fillText('Sample', 5, 20);
         const style = this.blurStyle.value;
         const strength = parseInt(this.blurSlider.value);
-
         if (style === 'gaussian') {
             ctx.globalAlpha = 0.6;
             ctx.filter = `blur(${strength}px)`;
@@ -277,15 +266,12 @@ class PrivacyScreenshotCleaner {
             ctx.fillText('█████', 5, 22);
         }
     }
-
     handleBlurChange(e) {
         this.blurValue.textContent = e.target.value;
         this.blurStrength = parseInt(e.target.value);
         this.updateBlurSample();
         this.reprocessImage();
     }
-
-    // ---- PERSONAL INFO ----
     handleNameBlurToggle(e) {
         this.userNameInput.style.display = e.target.checked ? 'block' : 'none';
         this.reprocessImage();
@@ -302,8 +288,6 @@ class PrivacyScreenshotCleaner {
         this.customText = e.target.value;
         this.reprocessImage();
     }
-
-    // ---- BEFORE/AFTER ----
     toggleBeforeAfterMode(show) {
         this.beforeAfterContainer.style.display = show ? 'grid' : 'none';
         if (show && this.originalImage) {
@@ -315,14 +299,10 @@ class PrivacyScreenshotCleaner {
             this.afterCtx.drawImage(this.canvas, 0, 0);
         }
     }
-
-    // ---- DETECTION & BLUR LOGIC ----
     reprocessImage() {
         if (!this.originalImage) return;
-        // Dummy detection for now – replace with your detection logic
         this.ctx.drawImage(this.originalImage, 0, 0);
         let blurCount = 0, faceCount = 0;
-        // Example: Blur a rectangle in the center
         const style = this.blurStyle.value;
         const strength = this.blurStrength;
         let x = this.canvas.width/4, y = this.canvas.height/4, w = this.canvas.width/2, h = this.canvas.height/6;
@@ -332,7 +312,6 @@ class PrivacyScreenshotCleaner {
             this.ctx.drawImage(this.originalImage, x, y, w, h, x, y, w, h);
             this.ctx.restore();
         } else if (style === 'pixelate') {
-            // Simple pixelate effect
             const imgData = this.ctx.getImageData(x, y, w, h);
             for (let py = 0; py < h; py += strength) {
                 for (let px = 0; px < w; px += strength) {
@@ -355,19 +334,15 @@ class PrivacyScreenshotCleaner {
             this.ctx.fillRect(x, y, w, h);
         }
         blurCount++;
-        // Update stats
         this.textDetections.textContent = blurCount;
         this.faceDetections.textContent = faceCount;
         this.totalDetections.textContent = blurCount + faceCount;
-        this.processingTime.textContent = (Math.random()*2+1).toFixed(2); // Dummy
+        this.processingTime.textContent = (Math.random()*2+1).toFixed(2);
         this.detectionStats.style.display = 'grid';
         this.detectedItemsContent.innerHTML = `<span class="detected-item">Sample Blur Applied</span>`;
         this.detectedItemsList.style.display = 'block';
-        // Update before/after
         if (this.beforeAfterMode.checked) this.toggleBeforeAfterMode(true);
     }
-
-    // ---- DOWNLOADS ----
     downloadImage() {
         const link = document.createElement('a');
         link.href = this.canvas.toDataURL('image/png');
@@ -389,8 +364,6 @@ class PrivacyScreenshotCleaner {
         link.click();
         document.body.removeChild(link);
     }
-
-    // ---- UNDO/RESET ----
     undoLastAction() {
         this.showToast('Undo last not implemented yet.', 'info');
     }
@@ -399,12 +372,9 @@ class PrivacyScreenshotCleaner {
         this.displayImage(this.originalImage);
         this.showToast('Reset to original!', 'success');
     }
-
-    // ---- FACE API ----
     loadFaceApiModels() {
         // Could load models here if using face detection
     }
-
     handleKeyboardShortcuts(e) {
         if (e.ctrlKey || e.metaKey) {
             switch(e.key) {
@@ -421,9 +391,20 @@ class PrivacyScreenshotCleaner {
             }
         }
     }
+    toggleDarkMode() {
+        document.body.classList.toggle('dark-mode', this.darkModeToggle.checked);
+        localStorage.setItem('blurshield-dark', this.darkModeToggle.checked ? '1' : '0');
+        this.updateBlurSample();
+    }
+    loadTheme() {
+        const saved = localStorage.getItem('blurshield-dark');
+        if (saved === '1') {
+            this.darkModeToggle.checked = true;
+            document.body.classList.add('dark-mode');
+            this.updateBlurSample();
+        }
+    }
 }
-
-// --- INIT ---
 window.addEventListener('DOMContentLoaded', () => {
     new PrivacyScreenshotCleaner();
 });
