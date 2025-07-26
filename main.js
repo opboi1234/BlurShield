@@ -3,7 +3,6 @@ class PrivacyScreenshotCleaner {
         this.initializeElements();
         this.initializeState();
         this.bindEvents();
-        this.loadFaceApiModels();
         this.setupProgressRing();
         this.updateBlurSample();
         this.loadTheme();
@@ -46,9 +45,7 @@ class PrivacyScreenshotCleaner {
         this.detectEmails = document.getElementById('detectEmails');
         this.detectPhones = document.getElementById('detectPhones');
         this.detectFaces = document.getElementById('detectFaces');
-        this.detectAddresses = document.getElementById('detectAddresses');
         this.detectCreditCards = document.getElementById('detectCreditCards');
-        this.detectSSN = document.getElementById('detectSSN');
         this.textDetections = document.getElementById('textDetections');
         this.faceDetections = document.getElementById('faceDetections');
         this.totalDetections = document.getElementById('totalDetections');
@@ -60,13 +57,11 @@ class PrivacyScreenshotCleaner {
         this.originalImage = null;
         this.originalImageData = null;
         this.detectedRects = [];
-        this.detectedFaces = [];
         this.detectedItems = [];
         this.undoStack = [];
         this.blurStrength = parseInt(this.blurSlider.value);
         this.userName = '';
         this.customText = '';
-        this.faceApiLoaded = false;
         this.startTime = null;
     }
 
@@ -80,15 +75,7 @@ class PrivacyScreenshotCleaner {
         }
     }
 
-    updateProgressRing(percent) {
-        const circle = this.progressCircle;
-        if (circle) {
-            const radius = circle.r.baseVal.value;
-            const circumference = radius * 2 * Math.PI;
-            const offset = circumference - (percent / 100) * circumference;
-            circle.style.strokeDashoffset = offset;
-        }
-    }
+    updateProgressRing(percent) {}
 
     bindEvents() {
         this.imageUpload.addEventListener('change', (e) => this.handleFileSelect(e));
@@ -106,8 +93,8 @@ class PrivacyScreenshotCleaner {
         this.detectCustom.addEventListener('change', (e) => this.handleCustomTextToggle(e));
         this.customTextInput.addEventListener('input', (e) => this.handleCustomTextInput(e));
         [
-            this.detectEmails, this.detectPhones, this.detectFaces, this.detectAddresses,
-            this.detectCreditCards, this.detectSSN
+            this.detectEmails, this.detectPhones, this.detectFaces,
+            this.detectCreditCards
         ].forEach(checkbox => checkbox.addEventListener('change', () => this.reprocessImage()));
         this.downloadBtn.addEventListener('click', () => this.downloadImage());
         this.downloadOriginalBtn.addEventListener('click', () => this.downloadOriginalImage());
@@ -136,13 +123,11 @@ class PrivacyScreenshotCleaner {
         }
     }
     handleDragOver(e) {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         this.uploadSection.classList.add('dragover');
     }
     handleDrop(e) {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         this.uploadSection.classList.remove('dragover');
         const file = e.dataTransfer.files[0];
         if (file && this.validateImageFile(file)) {
@@ -231,7 +216,7 @@ class PrivacyScreenshotCleaner {
         this.downloadOriginalBtn.style.display = 'inline-block';
         this.undoBtn.style.display = 'inline-block';
         this.resetBtn.style.display = 'inline-block';
-        this.reprocessImage();
+        setTimeout(() => this.reprocessImage(), 150);
         if (this.beforeAfterMode.checked) this.toggleBeforeAfterMode(true);
     }
     updateBlurSample() {
@@ -299,49 +284,118 @@ class PrivacyScreenshotCleaner {
             this.afterCtx.drawImage(this.canvas, 0, 0);
         }
     }
-    reprocessImage() {
+
+    async reprocessImage() {
         if (!this.originalImage) return;
-        this.ctx.drawImage(this.originalImage, 0, 0);
-        let blurCount = 0, faceCount = 0;
-        const style = this.blurStyle.value;
-        const strength = this.blurStrength;
-        let x = this.canvas.width/4, y = this.canvas.height/4, w = this.canvas.width/2, h = this.canvas.height/6;
-        if (style === 'gaussian') {
-            this.ctx.save();
-            this.ctx.filter = `blur(${strength}px)`;
-            this.ctx.drawImage(this.originalImage, x, y, w, h, x, y, w, h);
-            this.ctx.restore();
-        } else if (style === 'pixelate') {
-            const imgData = this.ctx.getImageData(x, y, w, h);
-            for (let py = 0; py < h; py += strength) {
-                for (let px = 0; px < w; px += strength) {
-                    const idx = ((py * w) + px) * 4;
-                    const r = imgData.data[idx], g = imgData.data[idx+1], b = imgData.data[idx+2], a = imgData.data[idx+3];
-                    for (let sy = 0; sy < strength; sy++) {
-                        for (let sx = 0; sx < strength; sx++) {
-                            const pi = ((py+sy)*w + (px+sx))*4;
-                            imgData.data[pi] = r;
-                            imgData.data[pi+1] = g;
-                            imgData.data[pi+2] = b;
-                            imgData.data[pi+3] = a;
-                        }
-                    }
-                }
-            }
-            this.ctx.putImageData(imgData, x, y);
-        } else if (style === 'blackout') {
-            this.ctx.fillStyle = "#111";
-            this.ctx.fillRect(x, y, w, h);
+        this.showLoading(true);
+        // OCR: get text boxes
+        let blurItems = [];
+        try {
+            const result = await Tesseract.recognize(this.canvas, 'eng', {
+                logger: m => {}
+            });
+            blurItems = this.getSensitiveItems(result.data.words);
+        } catch(e) {
+            this.showToast('OCR failed! Try a clearer screenshot.', 'danger');
         }
-        blurCount++;
+        this.ctx.drawImage(this.originalImage, 0, 0);
+        let faceCount = 0, blurCount = 0;
+        let detectedItemsText = [];
+        for (const item of blurItems) {
+            this.blurBox(item.bbox, this.blurStyle.value, this.blurStrength);
+            blurCount++;
+            detectedItemsText.push(`<span class="detected-item">${item.type}: ${item.text}</span>`);
+            if (item.type === "Name") faceCount++;
+        }
         this.textDetections.textContent = blurCount;
         this.faceDetections.textContent = faceCount;
         this.totalDetections.textContent = blurCount + faceCount;
         this.processingTime.textContent = (Math.random()*2+1).toFixed(2);
         this.detectionStats.style.display = 'grid';
-        this.detectedItemsContent.innerHTML = `<span class="detected-item">Sample Blur Applied</span>`;
-        this.detectedItemsList.style.display = 'block';
+        this.detectedItemsContent.innerHTML = detectedItemsText.join('');
+        this.detectedItemsList.style.display = detectedItemsText.length ? 'block' : 'none';
         if (this.beforeAfterMode.checked) this.toggleBeforeAfterMode(true);
+        this.showLoading(false);
+    }
+
+    getSensitiveItems(words) {
+        // words: [{text, bbox:{x0,y0,x1,y1}}]
+        let items = [];
+        let emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
+        let phoneRegex = /(\+?\d{1,2}[ \-.]?)?(\(?\d{3}\)?[ \-.]?)?\d{3}[ \-.]?\d{4}/;
+        let creditCardRegex = /(?:\d{4}[ -]?){3}\d{4}|\d{15,16}/;
+        let nameList = []; // Custom names, add more common names if needed
+
+        if (this.blurNameCheck.checked && this.userNameInput.value.trim()) {
+            nameList.push(this.userNameInput.value.trim());
+        }
+        if (this.detectCustom.checked && this.customTextInput.value.trim()) {
+            nameList.push(this.customTextInput.value.trim());
+        }
+
+        for (const w of words) {
+            let t = w.text;
+            let b = w.bbox;
+            if (this.detectEmails.checked && emailRegex.test(t)) {
+                items.push({type:"Email", text:t, bbox:b});
+            } else if (this.detectPhones.checked && phoneRegex.test(t)) {
+                items.push({type:"Phone", text:t, bbox:b});
+            } else if (this.detectCreditCards.checked && creditCardRegex.test(t.replace(/[ -]/g,''))) {
+                items.push({type:"Credit Card", text:t, bbox:b});
+            } else if (this.detectFaces.checked && nameList.length && nameList.some(n => t.toLowerCase().includes(n.toLowerCase()))) {
+                items.push({type:"Name", text:t, bbox:b});
+            }
+        }
+        return items;
+    }
+
+    blurBox(bbox, style, strength) {
+        // bbox: {x0,y0,x1,y1}
+        let x = bbox.x0, y = bbox.y0, w = bbox.x1-bbox.x0, h = bbox.y1-bbox.y0;
+        if (style === 'gaussian') {
+            let region = this.ctx.getImageData(x, y, w, h);
+            let off = document.createElement('canvas');
+            off.width = w; off.height = h;
+            let offCtx = off.getContext('2d');
+            offCtx.putImageData(region, 0, 0);
+            offCtx.filter = `blur(${strength}px)`;
+            offCtx.drawImage(off, 0, 0);
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.9;
+            this.ctx.drawImage(off, x, y);
+            this.ctx.restore();
+        } else if (style === 'pixelate') {
+            let region = this.ctx.getImageData(x, y, w, h);
+            let off = document.createElement('canvas');
+            off.width = w; off.height = h;
+            let offCtx = off.getContext('2d');
+            for (let py = 0; py < h; py += strength) {
+                for (let px = 0; px < w; px += strength) {
+                    let idx = ((py * w) + px) * 4;
+                    let r = region.data[idx], g = region.data[idx+1], b = region.data[idx+2], a = region.data[idx+3];
+                    offCtx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
+                    offCtx.fillRect(px, py, strength, strength);
+                }
+            }
+            this.ctx.drawImage(off, x, y);
+        } else if (style === 'blackout') {
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.93;
+            this.ctx.fillStyle = "#222";
+            this.ctx.fillRect(x, y, w, h);
+            this.ctx.restore();
+        }
+        // Add animation
+        this.ctx.save();
+        this.ctx.strokeStyle = "#f5576c";
+        this.ctx.lineWidth = 2;
+        this.ctx.setLineDash([8, 4]);
+        this.ctx.strokeRect(x, y, w, h);
+        this.ctx.restore();
+    }
+
+    showLoading(val) {
+        this.loadingOverlay.style.display = val ? 'flex' : 'none';
     }
     downloadImage() {
         const link = document.createElement('a');
@@ -371,9 +425,6 @@ class PrivacyScreenshotCleaner {
         if (!this.originalImage) return;
         this.displayImage(this.originalImage);
         this.showToast('Reset to original!', 'success');
-    }
-    loadFaceApiModels() {
-        // Could load models here if using face detection
     }
     handleKeyboardShortcuts(e) {
         if (e.ctrlKey || e.metaKey) {
