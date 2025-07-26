@@ -28,7 +28,7 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
             padding: 40px;
             margin: 20px auto;
-            max-width: 900px;
+            max-width: 800px;
             animation: slideUp 0.8s ease-out;
         }
 
@@ -125,7 +125,7 @@
 
         #canvas {
             max-width: 100%;
-            max-height: 600px;
+            max-height: 500px;
             border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
@@ -134,6 +134,10 @@
             text-align: center;
             color: #94a3b8;
             font-size: 1.2rem;
+        }
+
+        .progress-container {
+            margin: 20px 0;
         }
 
         .detection-stats {
@@ -226,31 +230,25 @@
             font-family: monospace;
         }
 
+        .custom-patterns {
+            margin-top: 15px;
+        }
+
+        .pattern-tag {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            margin: 2px;
+        }
+
         .toast-container {
             position: fixed;
             top: 20px;
             right: 20px;
             z-index: 1000;
-        }
-
-        .detected-items {
-            background: #f0f9ff;
-            border: 1px solid #0ea5e9;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .detected-item {
-            background: #fee2e2;
-            color: #991b1b;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            margin: 2px;
-            display: inline-block;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
@@ -296,10 +294,6 @@
                         <input class="form-check-input" type="checkbox" id="detectCreditCards">
                         <label class="form-check-label" for="detectCreditCards">Credit Cards</label>
                     </div>
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="detectSSN">
-                        <label class="form-check-label" for="detectSSN">Social Security Numbers</label>
-                    </div>
                 </div>
 
                 <div class="control-group">
@@ -312,10 +306,10 @@
                     
                     <label class="form-label">
                         <i class="bi bi-droplet"></i> Blur Strength: 
-                        <span id="blurValue">15</span>px
-                        <span class="blur-preview" id="blurPreview">Sample</span>
+                        <span id="blurValue">12</span>px
+                        <span class="blur-preview" id="blurPreview">Preview</span>
                     </label>
-                    <input type="range" min="5" max="50" value="15" class="form-range" id="blurSlider">
+                    <input type="range" min="2" max="50" value="12" class="form-range" id="blurSlider">
                 </div>
             </div>
 
@@ -350,11 +344,6 @@
                     <div class="stat-number" id="totalDetections">0</div>
                     <div class="stat-label">Total Protections</div>
                 </div>
-            </div>
-
-            <div id="detectedItemsList" class="detected-items" style="display: none;">
-                <h6><i class="bi bi-eye-slash"></i> Detected & Blurred Items:</h6>
-                <div id="detectedItemsContent"></div>
             </div>
 
             <div class="text-center">
