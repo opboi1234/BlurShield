@@ -10,7 +10,6 @@
         :root {
             --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --bg-remove-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             --success-color: #10b981;
             --warning-color: #f59e0b;
             --danger-color: #ef4444;
@@ -26,191 +25,6 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 20px;
-            position: relative;
-        }
-
-        /* Floating Background Removal Button */
-        .bg-remove-float-btn {
-            position: fixed;
-            right: 30px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: var(--bg-remove-gradient);
-            color: white;
-            border: none;
-            padding: 15px 20px;
-            border-radius: 50px 0 0 50px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
-            transition: all 0.3s ease;
-            z-index: 1000;
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            min-height: 200px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .bg-remove-float-btn:hover {
-            transform: translateY(-50%) translateX(-10px);
-            box-shadow: 0 12px 35px rgba(79, 172, 254, 0.6);
-            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-        }
-
-        .bg-remove-float-btn i {
-            margin-bottom: 10px;
-            font-size: 1.5rem;
-        }
-
-        /* Background Removal Modal */
-        .bg-remove-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            backdrop-filter: blur(10px);
-        }
-
-        .bg-remove-modal.show {
-            display: flex;
-        }
-
-        .bg-remove-content {
-            background: white;
-            border-radius: 24px;
-            padding: 40px;
-            max-width: 800px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            position: relative;
-            animation: modalSlideIn 0.3s ease-out;
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: scale(0.9) translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-
-        .bg-remove-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .bg-remove-header h2 {
-            background: var(--bg-remove-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-
-        .bg-remove-upload {
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border: 3px dashed #0ea5e9;
-            border-radius: 16px;
-            padding: 30px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 20px;
-        }
-
-        .bg-remove-upload:hover {
-            border-color: #0284c7;
-            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
-            transform: translateY(-2px);
-        }
-
-        .bg-remove-upload.dragover {
-            border-color: var(--success-color);
-            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-        }
-
-        .bg-result-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin: 20px 0;
-        }
-
-        .bg-result-item {
-            text-align: center;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 12px;
-            border: 2px solid #e2e8f0;
-        }
-
-        .bg-result-item h6 {
-            margin-bottom: 15px;
-            color: #374151;
-            font-weight: 600;
-        }
-
-        .bg-result-item img {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .close-modal {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            color: #6b7280;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 50%;
-            transition: all 0.3s ease;
-        }
-
-        .close-modal:hover {
-            background: #f3f4f6;
-            color: #374151;
-        }
-
-        .bg-remove-btn {
-            background: var(--bg-remove-gradient);
-            border: none;
-            color: white;
-            padding: 12px 30px;
-            border-radius: 12px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
-        }
-
-        .bg-remove-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
-        }
-
-        .bg-remove-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
         }
 
         .main-container {
@@ -326,17 +140,6 @@
         @media (max-width: 768px) {
             .controls-grid {
                 grid-template-columns: 1fr;
-            }
-            
-            .bg-result-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .bg-remove-float-btn {
-                right: 15px;
-                padding: 12px 15px;
-                font-size: 0.9rem;
-                min-height: 150px;
             }
         }
 
@@ -623,72 +426,26 @@
             transform-origin: 50% 50%;
             transition: stroke-dashoffset 0.3s ease;
         }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .before-after-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 </head>
 <body>
-    <!-- Floating Background Removal Button -->
-    <button class="bg-remove-float-btn" id="bgRemoveFloatBtn">
-        <i class="bi bi-scissors"></i>
-        <span>Want to remove background from image?</span>
-    </button>
-
-    <!-- Background Removal Modal -->
-    <div class="bg-remove-modal" id="bgRemoveModal">
-        <div class="bg-remove-content">
-            <button class="close-modal" id="closeBgModal">
-                <i class="bi bi-x"></i>
-            </button>
-            
-            <div class="bg-remove-header">
-                <h2><i class="bi bi-scissors"></i> Background Remover</h2>
-                <p>Upload an image and we'll automatically remove the background for you!</p>
-            </div>
-
-            <div class="bg-remove-upload" id="bgRemoveUpload">
-                <div class="upload-icon">
-                    <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #0ea5e9;"></i>
-                </div>
-                <h5>Drop your image here or click to browse</h5>
-                <p class="text-muted">Supports PNG, JPG, JPEG files up to 12MB</p>
-                <input type="file" class="d-none" id="bgImageUpload" accept="image/png,image/jpeg,image/jpg">
-            </div>
-
-            <div class="text-center mb-3">
-                <button class="bg-remove-btn" id="removeBgBtn" disabled>
-                    <i class="bi bi-magic"></i> Remove Background
-                </button>
-            </div>
-
-            <div class="bg-result-container" id="bgResultContainer" style="display: none;">
-                <div class="bg-result-item">
-                    <h6><i class="bi bi-image"></i> Original Image</h6>
-                    <img id="originalBgImage" alt="Original">
-                </div>
-                <div class="bg-result-item">
-                    <h6><i class="bi bi-transparency"></i> Background Removed</h6>
-                    <img id="processedBgImage" alt="Background Removed">
-                </div>
-            </div>
-
-            <div class="text-center" id="bgDownloadSection" style="display: none;">
-                <button class="btn btn-custom me-2" id="downloadBgBtn">
-                    <i class="bi bi-download"></i> Download Result
-                </button>
-                <button class="btn btn-danger-custom" id="resetBgBtn">
-                    <i class="bi bi-arrow-clockwise"></i> Try Another
-                </button>
-            </div>
-
-            <div class="loading-overlay" id="bgLoadingOverlay" style="display: none;">
-                <div class="spinner"></div>
-                <h5>Removing background...</h5>
-                <p>This may take a few moments</p>
-            </div>
-        </div>
-    </div>
-
     <div class="main-container">
         <div class="header">
             <h1><i class="bi bi-shield-check"></i> Privacy Screenshot Cleaner</h1>
@@ -820,3 +577,45 @@
             <div class="stat-card" data-tooltip="Text-based sensitive information">
                 <div class="stat-number" id="textDetections">0</div>
                 <div class="stat-label">📝 Text Items Blurred</div>
+            </div>
+            <div class="stat-card" data-tooltip="Human faces detected">
+                <div class="stat-number" id="faceDetections">0</div>
+                <div class="stat-label">👤 Faces Protected</div>
+            </div>
+            <div class="stat-card" data-tooltip="Total privacy protections applied">
+                <div class="stat-number" id="totalDetections">0</div>
+                <div class="stat-label">🛡️ Total Protections</div>
+            </div>
+            <div class="stat-card" data-tooltip="Processing time">
+                <div class="stat-number" id="processingTime">0</div>
+                <div class="stat-label">⏱️ Seconds</div>
+            </div>
+        </div>
+
+        <div id="detectedItemsList" class="detected-items" style="display: none;">
+            <h6><i class="bi bi-eye-slash"></i> Detected & Protected Items:</h6>
+            <div id="detectedItemsContent"></div>
+        </div>
+
+        <div class="text-center">
+            <button class="btn btn-custom me-3" id="downloadBtn" style="display:none;">
+                <i class="bi bi-download"></i> Download Protected Image
+            </button>
+            <button class="btn btn-custom me-3" id="downloadOriginalBtn" style="display:none;">
+                <i class="bi bi-file-earmark-image"></i> Download Original
+            </button>
+            <button class="btn btn-danger-custom me-3" id="undoBtn" style="display:none;">
+                <i class="bi bi-arrow-counterclockwise"></i> Undo Last
+            </button>
+            <button class="btn btn-danger-custom" id="resetBtn" style="display:none;">
+                <i class="bi bi-arrow-clockwise"></i> Reset All
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container"></div>
+
+    <script src="main.js"></script>
+</body>
+</html>
