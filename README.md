@@ -10,6 +10,12 @@ Auto-Privacy Screenshot Cleaner is a privacy-focused web app that automatically 
 
 Using **OCR (Tesseract.js)** and **face detection (face-api.js)**, this app helps clean screenshots and images before sharing — perfect for social media, work, or school!
 
+ ____  _            ____  _     _      _     _ 
+| __ )| |_   _ _ __/ ___|| |__ (_) ___| | __| |
+|  _ \| | | | | '__\___ \| '_ \| |/ _ \ |/ _` |
+| |_) | | |_| | |   ___) | | | | |  __/ | (_| |
+|____/|_|\__,_|_|  |____/|_| |_|_|\___|_|\__,_|
+
 ---
 
 ## 🚀 Features
