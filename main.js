@@ -1,579 +1,574 @@
-// BlurShield main.js - Optimized Edition
-class BlurShieldApp {
-    constructor() {
-        this.initElements();
-        this.initState();
-        this.bindEvents();
-        this.renderBlurPreview();
-        this.setTheme();
-        
-        // Lazy load heavy dependencies
-        this.tesseractWorker = null;
-        this.faceApiLoaded = false;
-    }
-
-    initElements() {
-        // Cache DOM elements for better performance
-        this.elements = {
-            // Upload
-            imageUpload: document.getElementById('imageUpload'),
-            uploadSection: document.getElementById('uploadSection'),
-            uploadProgress: document.getElementById('uploadProgress'),
-            uploadProgressBar: document.getElementById('uploadProgressBar'),
-            browseBtn: document.getElementById('browseBtn'),
-            pasteBtn: document.getElementById('pasteBtn'),
-            cameraBtn: document.getElementById('cameraBtn'),
-
-            // Canvas
-            canvas: document.getElementById('canvas'),
-            placeholder: document.getElementById('placeholder'),
-            beforeCanvas: document.getElementById('beforeCanvas'),
-            afterCanvas: document.getElementById('afterCanvas'),
-            beforeAfterContainer: document.getElementById('beforeAfterContainer'),
-            beforeAfterMode: document.getElementById('beforeAfterMode'),
-
-            // Controls
-            blurSlider: document.getElementById('blurSlider'),
-            blurValue: document.getElementById('blurValue'),
-            blurPreviewSample: document.getElementById('blurPreviewSample'),
-            blurStyle: document.getElementById('blurStyle'),
-
-            // Loading
-            loadingOverlay: document.getElementById('loadingOverlay'),
-            loadingText: document.getElementById('loadingText'),
-            loadingSubtext: document.getElementById('loadingSubtext'),
-
-            // Buttons
-            downloadBtn: document.getElementById('downloadBtn'),
-            downloadOriginalBtn: document.getElementById('downloadOriginalBtn'),
-            undoBtn: document.getElementById('undoBtn'),
-            resetBtn: document.getElementById('resetBtn'),
-
-            // Detection
-            detectionStats: document.getElementById('detectionStats'),
-            detectedItemsList: document.getElementById('detectedItemsList'),
-            detectedItemsContent: document.getElementById('detectedItemsContent'),
-
-            // Settings
-            blurNameCheck: document.getElementById('blurNameCheck'),
-            userNameInput: document.getElementById('userNameInput'),
-            detectCustom: document.getElementById('detectCustom'),
-            customTextInput: document.getElementById('customTextInput'),
-            detectEmails: document.getElementById('detectEmails'),
-            detectPhones: document.getElementById('detectPhones'),
-            detectFaces: document.getElementById('detectFaces'),
-            detectAddresses: document.getElementById('detectAddresses'),
-            detectCreditCards: document.getElementById('detectCreditCards'),
-            detectSSN: document.getElementById('detectSSN'),
-
-            // Stats
-            textDetections: document.getElementById('textDetections'),
-            faceDetections: document.getElementById('faceDetections'),
-            totalDetections: document.getElementById('totalDetections'),
-            processingTime: document.getElementById('processingTime'),
-
-            // Theme
-            themeToggle: document.getElementById('themeToggle')
-        };
-
-        // Get canvas contexts
-        this.ctx = this.elements.canvas.getContext('2d');
-        this.beforeCtx = this.elements.beforeCanvas?.getContext('2d');
-        this.afterCtx = this.elements.afterCanvas?.getContext('2d');
-    }
-
-    initState() {
-        this.originalImage = null;
-        this.originalImageData = null;
-        this.detectedRects = [];
-        this.detectedFaces = [];
-        this.detectedItems = [];
-        this.undoStack = [];
-        this.blurStrength = parseInt(this.elements.blurSlider.value);
-        this.userName = '';
-        this.customText = '';
-        this.startTime = null;
-        this.processingQueue = [];
-        this.isProcessing = false;
-    }
-
-    bindEvents() {
-        const { elements } = this;
-
-        // Upload events with debouncing
-        elements.imageUpload.addEventListener('change', this.debounce(e => this.handleFileSelect(e), 100));
-        
-        elements.uploadSection.addEventListener('click', e => {
-            if (e.target === elements.uploadSection) elements.imageUpload.click();
-        });
-
-        // Drag and drop with better UX
-        elements.uploadSection.addEventListener('dragover', e => {
-            e.preventDefault();
-            elements.uploadSection.classList.add('dragover');
-        });
-
-        elements.uploadSection.addEventListener('dragleave', e => {
-            if (!elements.uploadSection.contains(e.relatedTarget)) {
-                elements.uploadSection.classList.remove('dragover');
-            }
-        });
-
-        elements.uploadSection.addEventListener('drop', e => {
-            e.preventDefault();
-            elements.uploadSection.classList.remove('dragover');
-            const file = e.dataTransfer.files?.[0];
-            if (file) this.simulateProgressAndLoad(file);
-        });
-
-        // Quick actions
-        elements.browseBtn.onclick = () => elements.imageUpload.click();
-        elements.pasteBtn.onclick = () => this.handlePasteFromClipboard();
-        elements.cameraBtn.onclick = () => this.handleCameraCapture();
-
-        // Controls with throttling for better performance
-        elements.blurSlider.addEventListener('input', this.throttle(e => this.handleBlurChange(e), 50));
-        elements.blurStyle.addEventListener('change', this.debounce(() => this.reprocessImage(), 200));
-
-        // Personal information settings
-        elements.blurNameCheck.addEventListener('change', e => {
-            elements.userNameInput.style.display = e.target.checked ? 'block' : 'none';
-            this.reprocessImage();
-        });
-
-        elements.userNameInput.addEventListener('input', this.debounce(e => {
-            this.userName = e.target.value || '';
-            this.reprocessImage();
-        }, 300));
-
-        elements.detectCustom.addEventListener('change', e => {
-            elements.customTextInput.style.display = e.target.checked ? 'block' : 'none';
-            this.reprocessImage();
-        });
-
-        elements.customTextInput.addEventListener('input', this.debounce(e => {
-            this.customText = e.target.value || '';
-            this.reprocessImage();
-        }, 300));
-
-        // Detection settings
-        [elements.detectEmails, elements.detectPhones, elements.detectFaces, 
-         elements.detectAddresses, elements.detectCreditCards, elements.detectSSN].forEach(checkbox => {
-            checkbox.addEventListener('change', this.debounce(() => this.reprocessImage(), 200));
-        });
-
-        // Buttons
-        elements.downloadBtn.onclick = () => this.downloadImage();
-        elements.downloadOriginalBtn.onclick = () => this.downloadOriginalImage();
-        elements.undoBtn.onclick = () => this.undoLastAction();
-        elements.resetBtn.onclick = () => this.resetAll();
-
-        // Before/after mode
-        elements.beforeAfterMode.addEventListener('change', e => this.toggleBeforeAfterMode(e.target.checked));
-
-        // Theme toggle
-        elements.themeToggle.onclick = () => this.toggleTheme();
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', e => {
-            if (e.ctrlKey || e.metaKey) {
-                switch(e.key) {
-                    case 'z':
-                        e.preventDefault();
-                        this.undoLastAction();
-                        break;
-                    case 's':
-                        e.preventDefault();
-                        this.downloadImage();
-                        break;
-                    case 'r':
-                        e.preventDefault();
-                        this.resetAll();
-                        break;
-                }
-            }
-        });
-    }
-
-    // Utility functions for performance
-    debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    }
-
-    throttle(func, limit) {
-        let inThrottle;
-        return function() {
-            const args = arguments;
-            const context = this;
-            if (!inThrottle) {
-                func.apply(context, args);
-                inThrottle = true;
-                setTimeout(() => inThrottle = false, limit);
-            }
-        }
-    }
-
-    setTheme() {
-        // Auto dark mode detection
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.body.classList.add('dark-theme');
-            this.elements.themeToggle.innerHTML = '<i class="bi bi-brightness-high"></i>';
-        }
-    }
-
-    toggleTheme() {
-        document.body.classList.toggle('dark-theme');
-        const isDark = document.body.classList.contains('dark-theme');
-        this.elements.themeToggle.innerHTML = isDark ? 
-            '<i class="bi bi-brightness-high"></i>' : 
-            '<i class="bi bi-moon"></i>';
-        
-        // Save preference
-        localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    }
-
-    simulateProgressAndLoad(file) {
-        this.elements.uploadProgress.style.display = 'block';
-        this.elements.uploadProgressBar.style.width = '0%';
-        
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += Math.random() * 20;
-            if (progress > 90) progress = 90;
-            this.elements.uploadProgressBar.style.width = progress + '%';
-        }, 100);
-
-        // Start loading file immediately
-        this.handleImageFile(file).then(() => {
-            clearInterval(interval);
-            this.elements.uploadProgressBar.style.width = '100%';
-            setTimeout(() => {
-                this.elements.uploadProgress.style.display = 'none';
-            }, 500);
-        });
-    }
-
-    async handleImageFile(file) {
-        if (!file || !file.type.startsWith('image/')) {
-            this.showToast('Invalid image file', 'danger');
-            return;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlurShield - AI-Powered Privacy Protection</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --bg-color: #ffffff;
+            --surface-color: #f8fafc;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
         }
 
-        if (file.size > 10 * 1024 * 1024) {
-            this.showToast('File too large. Maximum size is 10MB', 'danger');
-            return;
+        [data-theme="dark"] {
+            --bg-color: #0f172a;
+            --surface-color: #1e293b;
+            --text-color: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3);
         }
 
-        try {
-            const dataURL = await this.fileToDataURL(file);
-            await this.loadImage(dataURL);
-        } catch (error) {
-            this.showToast('Error loading image: ' + error.message, 'danger');
+        * {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
-    }
 
-    fileToDataURL(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = e => resolve(e.target.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-    }
-
-    handleFileSelect(e) {
-        const file = e.target.files[0];
-        if (file) this.simulateProgressAndLoad(file);
-    }
-
-    async loadImage(dataURL) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => {
-                // Optimize canvas size for performance
-                const maxSize = 1920;
-                let { width, height } = img;
-                
-                if (width > maxSize || height > maxSize) {
-                    const ratio = Math.min(maxSize / width, maxSize / height);
-                    width *= ratio;
-                    height *= ratio;
-                }
-
-                this.elements.canvas.width = width;
-                this.elements.canvas.height = height;
-                this.ctx.clearRect(0, 0, width, height);
-                this.ctx.drawImage(img, 0, 0, width, height);
-
-                this.originalImage = img;
-                this.originalImageData = this.ctx.getImageData(0, 0, width, height);
-                this.elements.placeholder.style.display = 'none';
-                
-                this.showButtons();
-                this.reprocessImage();
-                resolve();
-            };
-            img.onerror = reject;
-            img.src = dataURL;
-        });
-    }
-
-    async handlePasteFromClipboard() {
-        try {
-            const items = await navigator.clipboard.read();
-            for (const item of items) {
-                for (const type of item.types) {
-                    if (type.startsWith('image/')) {
-                        const blob = await item.getType(type);
-                        await this.handleImageFile(blob);
-                        return;
-                    }
-                }
-            }
-            this.showToast('No image found in clipboard!', 'warning');
-        } catch (error) {
-            this.showToast('Clipboard access denied', 'danger');
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
-    }
 
-    handleCameraCapture() {
-        // Create a temporary input for camera capture
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.capture = 'environment';
-        input.onchange = e => {
-            const file = e.target.files[0];
-            if (file) this.simulateProgressAndLoad(file);
-        };
-        input.click();
-    }
-
-    renderBlurPreview() {
-        this.elements.blurValue.textContent = this.elements.blurSlider.value;
-        
-        const canvas = this.elements.blurPreviewSample;
-        const ctx = canvas.getContext('2d');
-        
-        // Clear and draw sample text
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        ctx.fillStyle = '#374151';
-        ctx.fillText('Sample', 5, 14);
-        
-        // ApplytesseractWorker) {
-                await window.loadTesseract();
-                this.tesseractWorker = await Tesseract.createWorker();
-                await this.tesseractWorker.loadLanguage('eng');
-                await this.tesseractWorker.initialize('eng');
-                await this.tesseractWorker.setParameters({
-                    tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@.-_+() ',
-                    tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT
-                });
-            }
-
-            this.showLoading('Reading text...', 'OCR processing in progress');
-
-            // Get image data for OCR
-            const canvas = this.elements.canvas;
-            const { data } = await this.tesseractWorker.recognize(canvas);
-
-            // Process detected text
-            this.processOCRResults(data);
-
-        } catch (error) {
-            console.error('OCR Error:', error);
-            // Continue without OCR if it fails
+        .navbar {
+            background-color: var(--surface-color) !important;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
         }
-    }
 
-    processOCRResults(data) {
-        const { words } = data;
-        
-        words.forEach(word => {
-            const text = word.text.trim();
-            if (text.length < 2) return;
-
-            const bbox = word.bbox;
-            const rect = {
-                x: bbox.x0,
-                y: bbox.y0,
-                width: bbox.x1 - bbox.x0,
-                height: bbox.y1 - bbox.y0,
-                text: text,
-                type: 'unknown'
-            };
-
-            // Check against various patterns
-            if (this.elements.detectEmails.checked && this.isEmail(text)) {
-                rect.type = 'email';
-                this.detectedRects.push(rect);
-                this.detectedItems.push({ type: 'Email', text: this.maskText(text) });
-            }
-            
-            if (this.elements.detectPhones.checked && this.isPhoneNumber(text)) {
-                rect.type = 'phone';
-                this.detectedRects.push(rect);
-                this.detectedItems.push({ type: 'Phone', text: this.maskText(text) });
-            }
-            
-            if (this.elements.detectCreditCards.checked && this.isCreditCard(text)) {
-                rect.type = 'creditcard';
-                this.detectedRects.push(rect);
-                this.detectedItems.push({ type: 'Credit Card', text: this.maskText(text) });
-            }
-            
-            if (this.elements.detectSSN.checked && this.isSSN(text)) {
-                rect.type = 'ssn';
-                this.detectedRects.push(rect);
-                this.detectedItems.push({ type: 'SSN', text: this.maskText(text) });
-            }
-            
-            if (this.elements.detectAddresses.checked && this.isAddress(text)) {
-                rect.type = 'address';
-                this.detectedRects.push(rect);
-                this.detectedItems.push({ type: 'Address', text: this.maskText(text) });
-            }
-            
-            if (this.elements.blurNameCheck.checked && this.userName && 
-                text.toLowerCase().includes(this.userName.toLowerCase())) {
-                rect.type = 'name';
-                this.detectedRects.push(rect);
-                this.detectedItems.push({ type: 'Name', text: this.maskText(text) });
-            }
-            
-            if (this.elements.detectCustom.checked && this.customText && 
-                text.toLowerCase().includes(this.customText.toLowerCase())) {
-                rect.type = 'custom';
-                this.detectedRects.push(rect);
-                this.detectedItems.push({ type: 'Custom', text: this.maskText(text) });
-            }
-        });
-    }
-
-    async detectFaces() {
-        try {
-            // Lazy load face-api.js only when needed
-            if (!this.faceApiLoaded) {
-                await window.loadFaceAPI();
-                await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights/');
-                this.faceApiLoaded = true;
-            }
-
-            this.showLoading('Detecting faces...', 'AI face recognition in progress');
-
-            const detections = await faceapi.detectAllFaces(
-                this.elements.canvas,
-                new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 })
-            );
-
-            detections.forEach((detection, index) => {
-                const box = detection.box;
-                const rect = {
-                    x: box.x,
-                    y: box.y,
-                    width: box.width,
-                    height: box.height,
-                    type: 'face',
-                    confidence: detection.score
-                };
-                
-                this.detectedFaces.push(rect);
-                this.detectedItems.push({ 
-                    type: 'Face', 
-                    text: `Face ${index + 1} (${Math.round(detection.score * 100)}% confidence)` 
-                });
-            });
-
-        } catch (error) {
-            console.error('Face detection error:', error);
-            // Continue without face detection if it fails
+        .navbar-brand {
+            color: var(--primary-color) !important;
+            font-weight: 700;
         }
-    }
 
-    applyBlurEffects() {
-        const style = this.elements.blurStyle.value;
-        
-        // Apply blur to text detections
-        this.detectedRects.forEach(rect => {
-            this.applyBlur(rect, style);
-        });
-        
-        // Apply blur to face detections
-        this.detectedFaces.forEach(rect => {
-            this.applyBlur(rect, style);
-        });
-    }
-
-    applyBlur(rect, style) {
-        const { x, y, width, height } = rect;
-        
-        // Add padding to blur area
-        const padding = 5;
-        const blurX = Math.max(0, x - padding);
-        const blurY = Math.max(0, y - padding);
-        const blurWidth = Math.min(this.elements.canvas.width - blurX, width + padding * 2);
-        const blurHeight = Math.min(this.elements.canvas.height - blurY, height + padding * 2);
-
-        switch (style) {
-            case 'gaussian':
-                this.applyGaussianBlur(blurX, blurY, blurWidth, blurHeight);
-                break;
-            case 'pixelate':
-                this.applyPixelate(blurX, blurY, blurWidth, blurHeight);
-                break;
-            case 'blackout':
-                this.applyBlackout(blurX, blurY, blurWidth, blurHeight);
-                break;
+        .card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
         }
-    }
 
-    applyGaussianBlur(x, y, width, height) {
-        // Create temporary canvas for blur effect
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = width;
-        tempCanvas.height = height;
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
 
-        // Copy region to temp canvas
-        const imageData = this.ctx.getImageData(x, y, width, height);
-        tempCtx.putImageData(imageData, 0, 0);
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background-color: var(--bg-color);
+        }
 
-        // Apply blur filter
-        tempCtx.filter = `blur(${this.blurStrength}px)`;
-        tempCtx.drawImage(tempCanvas, 0, 0);
+        .upload-area.dragover {
+            border-color: var(--primary-color);
+            background-color: rgba(59, 130, 246, 0.1);
+        }
 
-        // Draw blurred region back
-        this.ctx.drawImage(tempCanvas, x, y);
-    }
+        .upload-icon {
+            font-size: 4rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
 
-    applyPixelate(x, y, width, height) {
-        const pixelSize = Math.max(8, this.blurStrength);
-        const imageData = this.ctx.getImageData(x, y, width, height);
-        const data = imageData.data;
+        .quick-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
 
-        for (let py = 0; py < height; py += pixelSize) {
-            for (let px = 0; px < width; px += pixelSize) {
-                // Get average color of pixel block
-                let r = 0, g = 0, b = 0, count = 0;
-                
-                for (let dy = 0; dy < pixelSize && py + dy < height; dy++) {
-                    for (let dx = 0; dx < pixelSize && px + dx < width; dx++) {
-                        const i = ((py + dy) * width + (px + dx)) * 4;
-                        r += data[i];
-                        g += data[i + 1];
-                        b += data[i + 2];
-                        count++;
-                    }
-                }
-                
-                r = Math.floor(r / count);
-                g = Math.floor(g
+        .quick-action-btn {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .quick-action-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .canvas-container {
+            position: relative;
+            text-align: center;
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        #canvas, #beforeCanvas, #afterCanvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .before-after-container {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .before-after-label {
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+        }
+
+        .controls-section {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .blur-preview {
+            width: 100px;
+            height: 30px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-left: 1rem;
+        }
+
+        .detection-stats {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .detected-items {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .detected-item {
+            display: inline-block;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.25rem 0.5rem;
+            margin: 0.25rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            max-width: 300px;
+        }
+
+        .loading-spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress {
+            background-color: var(--border-color);
+        }
+
+        .progress-bar {
+            background-color: var(--primary-color);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .form-control, .form-select {
+            background-color: var(--bg-color);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: var(--bg-color);
+            border-color: var(--primary-color);
+            color: var(--text-color);
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+        }
+
+        .form-check-input:checked {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .toast {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 8px;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .placeholder {
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            .upload-area {
+                padding: 2rem 1rem;
+                min-height: 200px;
+            }
+
+            .quick-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .detection-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-shield-check"></i> BlurShield
+            </a>
+            <div class="d-flex align-items-center">
+                <button class="theme-toggle me-3" id="themeToggle">
+                    <i class="bi bi-moon"></i>
+                </button>
+                <span class="navbar-text">AI-Powered Privacy Protection</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Upload Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">
+                            <i class="bi bi-cloud-upload"></i> Upload Image
+                        </h5>
+                        
+                        <div class="upload-area" id="uploadArea">
+                            <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+                            <div class="upload-icon">
+                                <i class="bi bi-cloud-upload"></i>
+                            </div>
+                            <h5>Drop your image here or click to browse</h5>
+                            <p class="text-muted">Supports JPG, PNG, GIF up to 10MB</p>
+                            
+                            <div class="quick-actions">
+                                <button class="quick-action-btn" id="browseBtn">
+                                    <i class="bi bi-folder2-open"></i> Browse Files
+                                </button>
+                                <button class="quick-action-btn" id="pasteBtn">
+                                    <i class="bi bi-clipboard"></i> Paste from Clipboard
+                                </button>
+                                <button class="quick-action-btn" id="cameraBtn">
+                                    <i class="bi bi-camera"></i> Take Photo
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="progress mt-3" id="uploadProgress" style="display: none;">
+                            <div class="progress-bar" id="uploadProgressBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="row">
+            <!-- Canvas Section -->
+            <div class="col-lg-8 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-image"></i> Image Preview
+                            </h5>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="beforeAfterMode">
+                                <label class="form-check-label" for="beforeAfterMode">
+                                    Before/After View
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="canvas-container">
+                            <div id="placeholder" class="placeholder">
+                                <i class="bi bi-image" style="font-size: 4rem; color: var(--text-muted);"></i>
+                                <p class="mt-2">Upload an image to get started</p>
+                            </div>
+                            <canvas id="canvas" style="display: none;"></canvas>
+                            
+                            <div class="before-after-container" id="beforeAfterContainer">
+                                <div>
+                                    <div class="before-after-label">Before</div>
+                                    <canvas id="beforeCanvas"></canvas>
+                                </div>
+                                <div>
+                                    <div class="before-after-label">After</div>
+                                    <canvas id="afterCanvas"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2 mt-3 flex-wrap">
+                            <button class="btn btn-primary" id="downloadBtn" style="display: none;">
+                                <i class="bi bi-download"></i> Download Protected
+                            </button>
+                            <button class="btn btn-outline-primary" id="downloadOriginalBtn" style="display: none;">
+                                <i class="bi bi-file-earmark-image"></i> Download Original
+                            </button>
+                            <button class="btn btn-outline-secondary" id="undoBtn" style="display: none;">
+                                <i class="bi bi-arrow-counterclockwise"></i> Undo
+                            </button>
+                            <button class="btn btn-outline-danger" id="resetBtn" style="display: none;">
+                                <i class="bi bi-arrow-clockwise"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detection Stats -->
+                <div class="detection-stats" id="detectionStats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="textDetections">0</div>
+                        <div class="stat-label">Text Items</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="faceDetections">0</div>
+                        <div class="stat-label">Faces</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalDetections">0</div>
+                        <div class="stat-label">Total Items</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="processingTime">0</div>
+                        <div class="stat-label">Seconds</div>
+                    </div>
+                </div>
+
+                <!-- Detected Items -->
+                <div class="detected-items" id="detectedItemsList">
+                    <h6 class="mt-3 mb-2">Detected Items:</h6>
+                    <div id="detectedItemsContent"></div>
+                </div>
+            </div>
+
+            <!-- Controls Section -->
+            <div class="col-lg-4">
+                <div class="controls-section mb-4">
+                    <h5 class="mb-3">
+                        <i class="bi bi-sliders"></i> Blur Settings
+                    </h5>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Blur Strength: <span id="blurValue">10</span>px</label>
+                        <div class="d-flex align-items-center">
+                            <input type="range" class="form-range" id="blurSlider" min="5" max="50" value="10">
+                            <canvas class="blur-preview" id="blurPreviewSample" width="100" height="30"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Blur Style</label>
+                        <select class="form-select" id="blurStyle">
+                            <option value="gaussian">Gaussian Blur</option>
+                            <option value="pixelate">Pixelate</option>
+                            <option value="blackout">Black Box</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="controls-section mb-4">
+                    <h5 class="mb-3">
+                        <i class="bi bi-eye-slash"></i> Detection Settings
+                    </h5>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="detectEmails" checked>
+                        <label class="form-check-label" for="detectEmails">
+                            <i class="bi bi-envelope"></i> Email Addresses
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="detectPhones" checked>
+                        <label class="form-check-label" for="detectPhones">
+                            <i class="bi bi-telephone"></i> Phone Numbers
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="detectFaces" checked>
+                        <label class="form-check-label" for="detectFaces">
+                            <i class="bi bi-person"></i> Faces
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="detectAddresses">
+                        <label class="form-check-label" for="detectAddresses">
+                            <i class="bi bi-geo-alt"></i> Addresses
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="detectCreditCards">
+                        <label class="form-check-label" for="detectCreditCards">
+                            <i class="bi bi-credit-card"></i> Credit Cards
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="detectSSN">
+                        <label class="form-check-label" for="detectSSN">
+                            <i class="bi bi-shield-lock"></i> Social Security Numbers
+                        </label>
+                    </div>
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="blurNameCheck">
+                        <label class="form-check-label" for="blurNameCheck">
+                            <i class="bi bi-person-badge"></i> Blur My Name
+                        </label>
+                    </div>
+                    <input type="text" class="form-control mb-3" id="userNameInput" placeholder="Enter your name" style="display: none;">
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="detectCustom">
+                        <label class="form-check-label" for="detectCustom">
+                            <i class="bi bi-search"></i> Custom Text
+                        </label>
+                    </div>
+                    <input type="text" class="form-control" id="customTextInput" placeholder="Enter custom text to blur" style="display: none;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h5 id="loadingText">Processing...</h5>
+            <p class="text-muted" id="loadingSubtext">Please wait</p>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
