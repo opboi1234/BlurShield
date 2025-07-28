@@ -1,155 +1,151 @@
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const blurStrengthSlider = document.getElementById('blurStrength');
-const blurValueLabel = document.getElementById('blurValue');
-const imageInput = document.getElementById('imageInput');
-const blurMessage = document.getElementById('blurMessage');
-
-let originalImage = null;
-
-blurStrengthSlider.oninput = () => {
-  blurValueLabel.textContent = blurStrengthSlider.value;
-};
-
-imageInput.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const img = new Image();
-  img.onload = () => {
-    canvas.width = img.width;
-    canvas.height = img.height;
-    ctx.drawImage(img, 0, 0);
-    originalImage = img;
-  };
-  img.src = URL.createObjectURL(file);
-});
-
-function getBlurOptions() {
-  return {
-    emails: document.getElementById('blurEmails').checked,
-    phones: document.getElementById('blurPhones').checked,
-    cards: document.getElementById('blurCards').checked,
-    names: document.getElementById('blurNames').checked,
-    addresses: document.getElementById('blurAddresses').checked,
-    faces: document.getElementById('blurFaces').checked,
-    nameValue: document.getElementById('nameInput').value.trim()
-  };
-}
-
-async function processImage() {
-  if (!originalImage) return;
-
-  ctx.drawImage(originalImage, 0, 0);
-  blurMessage.textContent = 'Scanning and blacking out...';
-
-  const padding = parseInt(blurStrengthSlider.value);
-  const options = getBlurOptions();
-
-  await detectText(canvas, padding, options);
-  if (options.faces) await detectFaces(canvas, padding);
-
-  blurMessage.textContent = 'Sensitive info hidden!';
-}
-
-async function detectText(canvas, padding, options) {
-  const { data: { words } } = await Tesseract.recognize(canvas, 'eng');
-
-  words.forEach(word => {
-    const value = word.text.trim();
-    const box = word.bbox;
-    if (shouldBlur(value, options)) {
-      blackBoxArea(box.x0 - padding, box.y0 - padding, (box.x1 - box.x0) + 2*padding, (box.y1 - box.y0) + 2*padding);
+// Enhanced Auto-Privacy Screenshot Cleaner with Cool Features
+class PrivacyScreenshotCleaner {
+    constructor() {
+        this.initializeElements();
+        this.initializeState();
+        this.bindEvents();
+        this.loadFaceApiModels();
+        this.setupProgressRing();
     }
-  });
-}
 
-function shouldBlur(value, options) {
-  // Remove non-alphanumeric characters for name comparison
-  const cleanValue = value.replace(/[^a-zA-Z0-9\s]/g, '').trim();
-  
-  return (
-    (options.phones && /\d{3}[\s-]?\d{3}[\s-]?\d{4}/.test(value)) ||
-    (options.emails && /[\w.-]+@[\w.-]+\.[a-z]{2,}/i.test(value)) ||
-    (options.cards && /\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}/.test(value)) ||
-    (options.addresses && /\d{1,5} [\w ]+ (Street|St|Ave|Road|Rd|Boulevard|Blvd)/i.test(value)) ||
-    (options.names && options.nameValue && isNameMatch(cleanValue, options.nameValue))
-  );
-}
+    initializeElements() {
+        // File upload elements
+        this.imageUpload = document.getElementById('imageUpload');
+        this.uploadSection = document.getElementById('uploadSection');
+        this.pasteBtn = document.getElementById('pasteBtn');
+        this.cameraBtn = document.getElementById('cameraBtn');
+        
+        // Canvas elements
+        this.canvas = document.getElementById('canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.beforeCanvas = document.getElementById('beforeCanvas');
+        this.beforeCtx = this.beforeCanvas?.getContext('2d');
+        this.afterCanvas = document.getElementById('afterCanvas');
+        this.afterCtx = this.afterCanvas?.getContext('2d');
+        
+        // Control elements
+        this.blurSlider = document.getElementById('blurSlider');
+        this.blurValue = document.getElementById('blurValue');
+        this.blurPreview = document.getElementById('blurPreview');
+        this.blurStyle = document.getElementById('blurStyle');
+        
+        // Loading elements
+        this.loadingOverlay = document.getElementById('loadingOverlay');
+        this.loadingText = document.getElementById('loadingText');
+        this.loadingSubtext = document.getElementById('loadingSubtext');
+        this.progressCircle = document.getElementById('progressCircle');
+        
+        // Button elements
+        this.downloadBtn = document.getElementById('downloadBtn');
+        this.downloadOriginalBtn = document.getElementById('downloadOriginalBtn');
+        this.undoBtn = document.getElementById('undoBtn');
+        this.resetBtn = document.getElementById('resetBtn');
+        
+        // Display elements
+        this.placeholder = document.getElementById('placeholder');
+        this.detectionStats = document.getElementById('detectionStats');
+        this.detectedItemsList = document.getElementById('detectedItemsList');
+        this.detectedItemsContent = document.getElementById('detectedItemsContent');
+        this.beforeAfterContainer = document.getElementById('beforeAfterContainer');
+        this.beforeAfterMode = document.getElementById('beforeAfterMode');
+        
+        // Detection checkboxes
+        this.blurNameCheck = document.getElementById('blurNameCheck');
+        this.userNameInput = document.getElementById('userNameInput');
+        this.detectCustom = document.getElementById('detectCustom');
+        this.customTextInput = document.getElementById('customTextInput');
+        this.detectEmails = document.getElementById('detectEmails');
+        this.detectPhones = document.getElementById('detectPhones');
+        this.detectFaces = document.getElementById('detectFaces');
+        this.detectAddresses = document.getElementById('detectAddresses');
+        this.detectCreditCards = document.getElementById('detectCreditCards');
+        this.detectSSN = document.getElementById('detectSSN');
+        
+        // Stats elements
+        this.textDetections = document.getElementById('textDetections');
+        this.faceDetections = document.getElementById('faceDetections');
+        this.totalDetections = document.getElementById('totalDetections');
+        this.processingTime = document.getElementById('processingTime');
+    }
 
-function isNameMatch(detectedText, targetName) {
-  if (!targetName || !detectedText) return false;
-  
-  const targetLower = targetName.toLowerCase().trim();
-  const detectedLower = detectedText.toLowerCase().trim();
-  
-  // Check for exact match
-  if (detectedLower === targetLower) return true;
-  
-  // Check if the detected text contains the name (for partial matches)
-  if (detectedLower.includes(targetLower)) return true;
-  
-  // Check if the name contains the detected text (for when OCR breaks up the name)
-  if (targetLower.includes(detectedLower) && detectedLower.length > 2) return true;
-  
-  // Split names and check individual parts
-  const targetParts = targetLower.split(/\s+/);
-  const detectedParts = detectedLower.split(/\s+/);
-  
-  for (const targetPart of targetParts) {
-    if (targetPart.length > 2) { // Only check parts longer than 2 characters
-      for (const detectedPart of detectedParts) {
-        if (detectedPart === targetPart || 
-            (detectedPart.includes(targetPart) && targetPart.length > 3) ||
-            (targetPart.includes(detectedPart) && detectedPart.length > 3)) {
-          return true;
+    initializeState() {
+        this.originalImage = null;
+        this.originalImageData = null;
+        this.detectedRects = [];
+        this.detectedFaces = [];
+        this.detectedItems = [];
+        this.undoStack = [];
+        this.blurStrength = parseInt(this.blurSlider.value);
+        this.userName = '';
+        this.customText = '';
+        this.faceApiLoaded = false;
+        this.startTime = null;
+        this.updateBlurPreview();
+    }
+
+    setupProgressRing() {
+        const circle = this.progressCircle;
+        if (circle) {
+            const radius = circle.r.baseVal.value;
+            const circumference = radius * 2 * Math.PI;
+            circle.style.strokeDasharray = `${circumference} ${circumference}`;
+            circle.style.strokeDashoffset = circumference;
         }
-      }
     }
-  }
-  
-  return false;
-}
 
-// Draw a solid black box for privacy
-function blackBoxArea(x, y, w, h) {
-  ctx.save();
-  ctx.fillStyle = 'black';
-  ctx.fillRect(x, y, w, h);
-  ctx.restore();
-}
+    updateProgressRing(percent) {
+        const circle = this.progressCircle;
+        if (circle) {
+            const radius = circle.r.baseVal.value;
+            const circumference = radius * 2 * Math.PI;
+            const offset = circumference - (percent / 100) * circumference;
+            circle.style.strokeDashoffset = offset;
+        }
+    }
 
-async function detectFaces(canvas, padding) {
-  try {
-    await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+    bindEvents() {
+        // File upload events
+        this.imageUpload.addEventListener('change', (e) => this.handleFileSelect(e));
+        this.uploadSection.addEventListener('click', () => this.imageUpload.click());
+        this.uploadSection.addEventListener('dragover', (e) => this.handleDragOver(e));
+        this.uploadSection.addEventListener('drop', (e) => this.handleDrop(e));
+        this.uploadSection.addEventListener('dragleave', () => this.uploadSection.classList.remove('dragover'));
 
-    const detections = await faceapi.detectAllFaces(canvas, 
-      new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 })
-    );
+        // New feature events
+        this.pasteBtn.addEventListener('click', () => this.handlePasteFromClipboard());
+        this.cameraBtn.addEventListener('click', () => this.handleCameraCapture());
+        this.beforeAfterMode.addEventListener('change', (e) => this.toggleBeforeAfterMode(e.target.checked));
 
-    detections.forEach(detection => {
-      const box = detection.box;
-      blackBoxArea(
-        box.x - padding, 
-        box.y - padding, 
-        box.width + 2 * padding, 
-        box.height + 2 * padding
-      );
-    });
-  } catch (error) {
-    console.error('Face detection error:', error);
-    blurMessage.textContent += ' (Face detection failed)';
-  }
-}
+        // Control events
+        this.blurSlider.addEventListener('input', (e) => this.handleBlurChange(e));
+        this.blurStyle.addEventListener('change', () => this.reprocessImage());
+        this.blurNameCheck.addEventListener('change', (e) => this.handleNameBlurToggle(e));
+        this.userNameInput.addEventListener('input', (e) => this.handleNameInput(e));
+        this.detectCustom.addEventListener('change', (e) => this.handleCustomTextToggle(e));
+        this.customTextInput.addEventListener('input', (e) => this.handleCustomTextInput(e));
+        
+        // Detection setting changes
+        [this.detectEmails, this.detectPhones, this.detectFaces, this.detectAddresses, 
+         this.detectCreditCards, this.detectSSN].forEach(checkbox => 
+            checkbox.addEventListener('change', () => this.reprocessImage()));
 
-function downloadImage() {
-  if (!canvas.width || !canvas.height) {
-    alert('No image to download!');
-    return;
-  }
+        // Button events
+        this.downloadBtn.addEventListener('click', () => this.downloadImage());
+        this.downloadOriginalBtn.addEventListener('click', () => this.downloadOriginalImage());
+        this.undoBtn.addEventListener('click', () => this.undoLastAction());
+        this.resetBtn.addEventListener('click', () => this.resetAll());
 
-  const link = document.createElement('a');
-  link.download = 'blurred-image.png';
-  link.href = canvas.toDataURL();
-  link.click();
-}
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
+    }
+
+    handleKeyboardShortcuts(e) {
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key) {
+                case 'v':
+                    if (e.target.tagName !== 'INPUT') {
+                        e.preventDefault();
+                        this.handlePasteFromClipboard();
+                    }
+                    break;
+                case 's':
