@@ -2,10 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Auto-Privacy Screenshot Cleaner</title>
+    <title>BlurShield – Smart Privacy Screenshot Cleaner</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Lottie (for loader animation) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.9.6/lottie.min.js"></script>
+    <!-- Tesseract.js (OCR) -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+    <!-- face-api.js (Face detection) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -13,47 +20,32 @@
             --success-color: #10b981;
             --warning-color: #f59e0b;
             --danger-color: #ef4444;
+            --glass-bg: rgba(255,255,255,0.85);
+            --glass-blur: blur(18px);
         }
-
-        * {
-            box-sizing: border-box;
-        }
-
         body {
             background: var(--primary-gradient);
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
+            transition: background 0.4s;
         }
-
+        body.dark-theme {
+            background: linear-gradient(135deg, #181825 0%, #3a3351 100%);
+        }
         .main-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
             border-radius: 24px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-            padding: 40px;
+            box-shadow: 0 12px 48px rgba(80, 80, 120, 0.13);
+            padding: 40px 20px;
             margin: 0 auto;
-            max-width: 1000px;
-            animation: slideUp 0.8s ease-out;
+            max-width: 1024px;
+            margin-top: 40px;
         }
-
-        @keyframes slideUp {
-            from { 
-                opacity: 0; 
-                transform: translateY(50px); 
-            }
-            to { 
-                opacity: 1; 
-                transform: translateY(0); 
-            }
-        }
-
         .header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 36px;
         }
-
         .header h1 {
             background: var(--primary-gradient);
             -webkit-background-clip: text;
@@ -63,395 +55,259 @@
             font-weight: 700;
             margin-bottom: 10px;
         }
-
         .header p {
             color: #6b7280;
             font-size: 1.1rem;
         }
-
+        #themeToggle {
+            position: absolute;
+            top: 25px;
+            right: 30px;
+            z-index: 10;
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            border: 1px solid #a5b4fc;
+            color: #3730a3;
+            border-radius: 20px;
+            padding: 6px 16px;
+        }
         .upload-section {
             background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             border: 3px dashed #cbd5e1;
             border-radius: 20px;
-            padding: 40px;
+            padding: 36px;
             text-align: center;
-            transition: all 0.3s ease;
             cursor: pointer;
-            margin-bottom: 30px;
+            margin-bottom: 26px;
+            transition: border-color 0.3s, box-shadow 0.3s;
             position: relative;
-            overflow: hidden;
         }
-
-        .upload-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-            transform: rotate(45deg);
-            transition: all 0.6s;
-            opacity: 0;
-        }
-
-        .upload-section:hover {
-            border-color: #667eea;
-            background: linear-gradient(135deg, #f1f5f9 0%, #e0e7ff 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
-        }
-
-        .upload-section:hover::before {
-            opacity: 1;
-            animation: shimmer 1.5s ease-in-out;
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-        }
-
         .upload-section.dragover {
             border-color: var(--success-color);
-            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-            transform: scale(1.02);
+            box-shadow: 0 0 0 4px #bbf7d0;
         }
-
         .upload-icon {
             font-size: 4rem;
             color: #94a3b8;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
+            margin-bottom: 16px;
         }
-
-        .upload-section:hover .upload-icon {
-            color: #667eea;
-            transform: scale(1.1);
-        }
-
-        .controls-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        @media (max-width: 768px) {
-            .controls-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .control-group {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            padding: 25px;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            transition: all 0.3s ease;
-        }
-
-        .control-group:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .control-group h6 {
-            color: #374151;
-            font-weight: 600;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .canvas-container {
-            position: relative;
-            background: #ffffff;
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            padding: 30px;
-            margin-bottom: 30px;
-            min-height: 500px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        #canvas {
-            max-width: 100%;
-            max-height: 600px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-            transition: all 0.3s ease;
-        }
-
-        #canvas:hover {
-            transform: scale(1.02);
-        }
-
-        .placeholder {
-            text-align: center;
-            color: #94a3b8;
-            font-size: 1.2rem;
-        }
-
-        .detection-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 25px;
-            border-radius: 16px;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
-        }
-
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-
-        .btn-custom {
-            background: var(--primary-gradient);
-            border: none;
-            color: white;
-            padding: 15px 35px;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-custom::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .btn-custom:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-            color: white;
-        }
-
-        .btn-custom:hover::before {
-            left: 100%;
-        }
-
-        .btn-danger-custom {
-            background: var(--secondary-gradient);
-            border: none;
-            color: white;
-            padding: 12px 25px;
-            border-radius: 10px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .btn-danger-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
-        }
-
-        .loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.95);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border-radius: 20px;
-            z-index: 10;
-            backdrop-filter: blur(10px);
-        }
-
-        .spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid #e2e8f0;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .blur-preview {
-            display: inline-block;
-            padding: 8px 12px;
-            background: #f3f4f6;
-            border-radius: 8px;
-            margin-left: 10px;
-            font-family: monospace;
-            transition: all 0.3s ease;
-        }
-
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-        }
-
-        .detected-items {
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border: 2px solid #0ea5e9;
-            border-radius: 16px;
-            padding: 25px;
-            margin-top: 20px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .detected-item {
-            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-            color: #991b1b;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            margin: 5px;
-            display: inline-block;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .detected-item:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(153, 27, 27, 0.3);
-        }
-
-        .feature-toggle {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border: 2px solid #f59e0b;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .before-after-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin: 20px 0;
-        }
-
-        .before-after-item {
-            text-align: center;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 12px;
-        }
-
-        .before-after-item canvas {
-            max-width: 100%;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
         .quick-actions {
+            margin-top: 18px;
             display: flex;
             gap: 10px;
+            justify-content: center;
             flex-wrap: wrap;
-            margin: 20px 0;
         }
-
         .quick-action-btn {
             background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
             border: 1px solid #a5b4fc;
             color: #3730a3;
             padding: 8px 16px;
             border-radius: 8px;
-            font-size: 0.9rem;
+            font-size: 1rem;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: background 0.3s, transform 0.2s;
         }
-
         .quick-action-btn:hover {
             background: linear-gradient(135deg, #c7d2fe 0%, #a5b4fc 100%);
-            transform: translateY(-2px);
+            transform: translateY(-2px) scale(1.05);
         }
-
-        .progress-ring {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 15px;
+        #uploadProgress {
+            width: 70%;
+            margin: 12px auto 0 auto;
+            height: 8px;
+            border-radius: 4px;
+            background: #e0e7ff;
+            display: none;
         }
-
-        .progress-ring-circle {
-            fill: none;
-            stroke: #e2e8f0;
-            stroke-width: 4;
+        #uploadProgressBar {
+            width: 0%;
+            height: 100%;
+            background: #667eea;
+            border-radius: 4px;
+            transition: width 0.3s;
         }
-
-        .progress-ring-progress {
-            fill: none;
-            stroke: #667eea;
-            stroke-width: 4;
-            stroke-linecap: round;
-            transform: rotate(-90deg);
-            transform-origin: 50% 50%;
-            transition: stroke-dashoffset 0.3s ease;
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 26px;
         }
-
-        @media (max-width: 768px) {
-            .main-container {
-                padding: 20px;
-                margin: 10px;
-            }
-            
+        @media (max-width: 900px) {
+            .controls-grid { grid-template-columns: 1fr; }
+        }
+        .control-group {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 22px;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            transition: box-shadow 0.3s;
+        }
+        .control-group h6 {
+            color: #374151;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .blur-preview {
+            display: inline-block;
+            padding: 7px 12px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            margin-left: 8px;
+            font-family: monospace;
+        }
+        #blurPreviewSample {
+            vertical-align: middle;
+            margin-left: 8px;
+            border-radius: 4px;
+            background: #f3f4f6;
+        }
+        .canvas-container {
+            position: relative;
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.11);
+            padding: 28px;
+            margin-bottom: 22px;
+            min-height: 420px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #canvas {
+            max-width: 100%;
+            max-height: 500px;
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.11);
+        }
+        .placeholder {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 1.13rem;
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.97);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 18px;
+            z-index: 10;
+            backdrop-filter: blur(9px);
+        }
+        .before-after-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 18px 0;
+        }
+        .before-after-item {
+            text-align: center;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 10px;
+        }
+        .before-after-item canvas {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 7px rgba(0, 0, 0, 0.08);
+        }
+        @media (max-width: 900px) {
             .before-after-container {
                 grid-template-columns: 1fr;
             }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
+        }
+        .detection-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin: 18px 0;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 18px;
+            border-radius: 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px) scale(1.04);
+        }
+        .stat-number { font-size: 2.1rem; font-weight: bold; margin-bottom: 4px; }
+        .stat-label { font-size: 0.97rem; opacity: 0.93; }
+        .detected-items {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 2px solid #0ea5e9;
+            border-radius: 13px;
+            padding: 16px;
+            margin-top: 14px;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        .detected-item {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+            padding: 7px 10px;
+            border-radius: 7px;
+            font-size: 0.90rem;
+            margin: 4px;
+            display: inline-block;
+            cursor: pointer;
+        }
+        .detected-item:hover {
+            transform: scale(1.06);
+            box-shadow: 0 2px 8px rgba(153, 27, 27, 0.13);
+        }
+        .btn-custom {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 13px 32px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1.07rem;
+            margin: 3px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.23);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-custom:hover {
+            background: var(--secondary-gradient);
+            color: white;
+        }
+        .btn-danger-custom {
+            background: var(--secondary-gradient);
+            border: none;
+            color: white;
+            padding: 10px 19px;
+            border-radius: 8px;
+            font-weight: 500;
+            margin: 3px;
+        }
+        .btn-danger-custom:hover {
+            background: #ef4444;
+        }
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 22px;
+            z-index: 1000;
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 </head>
 <body>
+    <button id="themeToggle" aria-label="Toggle light/dark mode"><i class="bi bi-moon"></i></button>
     <div class="main-container">
         <div class="header">
-            <h1><i class="bi bi-shield-check"></i> Privacy Screenshot Cleaner</h1>
+            <h1><i class="bi bi-shield-check"></i> BlurShield</h1>
             <p>Automatically detect and blur sensitive information in your screenshots</p>
         </div>
-
         <div class="upload-section" id="uploadSection">
             <div class="upload-icon">
                 <i class="bi bi-cloud-upload"></i>
@@ -459,9 +315,8 @@
             <h4>Drop your screenshot here or click to browse</h4>
             <p class="text-muted mb-3">Supports PNG, JPG, JPEG files up to 10MB</p>
             <input type="file" class="d-none" id="imageUpload" accept="image/png,image/jpeg,image/jpg">
-            
             <div class="quick-actions">
-                <button class="quick-action-btn" onclick="document.getElementById('imageUpload').click()">
+                <button class="quick-action-btn" id="browseBtn">
                     <i class="bi bi-folder2-open"></i> Browse Files
                 </button>
                 <button class="quick-action-btn" id="pasteBtn">
@@ -471,8 +326,10 @@
                     <i class="bi bi-camera"></i> Take Photo
                 </button>
             </div>
+            <div id="uploadProgress">
+                <div id="uploadProgressBar"></div>
+            </div>
         </div>
-
         <div class="feature-toggle">
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" id="beforeAfterMode">
@@ -481,7 +338,6 @@
                 </label>
             </div>
         </div>
-
         <div class="controls-grid">
             <div class="control-group">
                 <h6><i class="bi bi-sliders"></i> Detection Settings</h6>
@@ -510,7 +366,6 @@
                     <label class="form-check-label" for="detectSSN">🆔 Social Security Numbers</label>
                 </div>
             </div>
-
             <div class="control-group">
                 <h6><i class="bi bi-person-check"></i> Personal Information</h6>
                 <div class="form-check mb-2">
@@ -518,22 +373,20 @@
                     <label class="form-check-label" for="blurNameCheck">🏷️ Blur My Name</label>
                 </div>
                 <input type="text" class="form-control mb-3" id="userNameInput" placeholder="Enter your name" style="display:none;">
-                
                 <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="detectCustom">
                     <label class="form-check-label" for="detectCustom">🔍 Custom Text</label>
                 </div>
                 <input type="text" class="form-control mb-3" id="customTextInput" placeholder="Enter custom text to blur" style="display:none;">
             </div>
-
             <div class="control-group">
                 <h6><i class="bi bi-droplet"></i> Blur Settings</h6>
                 <label class="form-label">
                     Blur Strength: <span id="blurValue">15</span>px
                     <span class="blur-preview" id="blurPreview">Sample</span>
+                    <canvas id="blurPreviewSample" width="60" height="20"></canvas>
                 </label>
                 <input type="range" min="5" max="50" value="15" class="form-range mb-3" id="blurSlider">
-                
                 <label class="form-label">Blur Style:</label>
                 <select class="form-select mb-2" id="blurStyle">
                     <option value="gaussian">Gaussian Blur</option>
@@ -542,7 +395,6 @@
                 </select>
             </div>
         </div>
-
         <div class="canvas-container">
             <canvas id="canvas"></canvas>
             <div class="placeholder" id="placeholder">
@@ -553,15 +405,11 @@
                 </div>
             </div>
             <div class="loading-overlay" id="loadingOverlay" style="display: none;">
-                <svg class="progress-ring" viewBox="0 0 80 80">
-                    <circle class="progress-ring-circle" cx="40" cy="40" r="36"></circle>
-                    <circle class="progress-ring-progress" cx="40" cy="40" r="36" id="progressCircle"></circle>
-                </svg>
+                <div id="lottieLoader" style="width:80px; height:80px; margin-bottom:12px;"></div>
                 <h5 id="loadingText">Processing image...</h5>
                 <p id="loadingSubtext">Please wait while we analyze your image</p>
             </div>
         </div>
-
         <div class="before-after-container" id="beforeAfterContainer" style="display: none;">
             <div class="before-after-item">
                 <h6><i class="bi bi-eye"></i> Before (Original)</h6>
@@ -572,7 +420,6 @@
                 <canvas id="afterCanvas"></canvas>
             </div>
         </div>
-
         <div class="detection-stats" id="detectionStats" style="display: none;">
             <div class="stat-card" data-tooltip="Text-based sensitive information">
                 <div class="stat-number" id="textDetections">0</div>
@@ -591,20 +438,18 @@
                 <div class="stat-label">⏱️ Seconds</div>
             </div>
         </div>
-
         <div id="detectedItemsList" class="detected-items" style="display: none;">
             <h6><i class="bi bi-eye-slash"></i> Detected & Protected Items:</h6>
             <div id="detectedItemsContent"></div>
         </div>
-
         <div class="text-center">
-            <button class="btn btn-custom me-3" id="downloadBtn" style="display:none;">
+            <button class="btn btn-custom me-2" id="downloadBtn" style="display:none;">
                 <i class="bi bi-download"></i> Download Protected Image
             </button>
-            <button class="btn btn-custom me-3" id="downloadOriginalBtn" style="display:none;">
+            <button class="btn btn-custom me-2" id="downloadOriginalBtn" style="display:none;">
                 <i class="bi bi-file-earmark-image"></i> Download Original
             </button>
-            <button class="btn btn-danger-custom me-3" id="undoBtn" style="display:none;">
+            <button class="btn btn-danger-custom me-2" id="undoBtn" style="display:none;">
                 <i class="bi bi-arrow-counterclockwise"></i> Undo Last
             </button>
             <button class="btn btn-danger-custom" id="resetBtn" style="display:none;">
@@ -612,10 +457,7 @@
             </button>
         </div>
     </div>
-
-    <!-- Toast Container -->
     <div class="toast-container"></div>
-
     <script src="main.js"></script>
 </body>
 </html>
