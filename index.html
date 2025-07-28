@@ -3,236 +3,261 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BlurShield - AI-Powered Privacy Protection</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <title>Auto-Privacy Screenshot Cleaner</title>
     <style>
-        :root {
-            --primary-color: #3b82f6;
-            --secondary-color: #64748b;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
-            --bg-color: #ffffff;
-            --surface-color: #f8fafc;
-            --text-color: #1e293b;
-            --text-muted: #64748b;
-            --border-color: #e2e8f0;
-            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-        }
-
-        [data-theme="dark"] {
-            --bg-color: #0f172a;
-            --surface-color: #1e293b;
-            --text-color: #f1f5f9;
-            --text-muted: #94a3b8;
-            --border-color: #334155;
-            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3);
-        }
-
         * {
-            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
 
-        .navbar {
-            background-color: var(--surface-color) !important;
-            border-bottom: 1px solid var(--border-color);
-            box-shadow: var(--shadow);
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
-        .navbar-brand {
-            color: var(--primary-color) !important;
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 0;
+        }
+
+        .header h1 {
+            font-size: 3rem;
             font-weight: 700;
+            background: linear-gradient(45deg, #00ff88, #0088ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            animation: glow 2s ease-in-out infinite alternate;
         }
 
-        .card {
-            background-color: var(--surface-color);
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow);
+        @keyframes glow {
+            from { text-shadow: 0 0 20px rgba(0, 255, 136, 0.3); }
+            to { text-shadow: 0 0 30px rgba(0, 136, 255, 0.5); }
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: #a0a0a0;
+            margin-bottom: 30px;
+        }
+
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .feature {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .feature:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.2);
+            border-color: rgba(0, 255, 136, 0.3);
+        }
+
+        .feature-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #00ff88, #0088ff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .upload-section, .preview-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            min-height: 500px;
+            transition: all 0.3s ease;
         }
 
         .upload-area {
-            border: 2px dashed var(--border-color);
-            background-color: var(--surface-color);
-            border-radius: 12px;
-            padding: 3rem;
+            border: 3px dashed rgba(0, 255, 136, 0.3);
+            border-radius: 16px;
+            padding: 60px 30px;
             text-align: center;
-            cursor: pointer;
             transition: all 0.3s ease;
-            min-height: 300px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
         }
 
         .upload-area:hover {
-            border-color: var(--primary-color);
-            background-color: var(--bg-color);
+            border-color: rgba(0, 255, 136, 0.6);
+            background: rgba(0, 255, 136, 0.05);
+            transform: scale(1.02);
         }
 
         .upload-area.dragover {
-            border-color: var(--primary-color);
-            background-color: rgba(59, 130, 246, 0.1);
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
         }
 
         .upload-icon {
             font-size: 4rem;
-            color: var(--text-muted);
-            margin-bottom: 1rem;
+            color: #00ff88;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
         }
 
-        .quick-actions {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1rem;
-            flex-wrap: wrap;
-            justify-content: center;
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
         }
 
-        .quick-action-btn {
-            background-color: var(--surface-color);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.3s ease;
+        .upload-text {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            font-weight: 600;
         }
 
-        .quick-action-btn:hover {
-            background-color: var(--primary-color);
+        .upload-subtext {
+            color: #a0a0a0;
+            font-size: 0.9rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #00ff88, #0088ff);
+            border: none;
+            border-radius: 12px;
+            padding: 15px 30px;
             color: white;
-            border-color: var(--primary-color);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #ff4444, #ff6b6b);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 10px 30px rgba(255, 68, 68, 0.4);
+        }
+
+        .preview-container {
+            position: relative;
+            text-align: center;
+        }
+
+        .preview-img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
         }
 
         .canvas-container {
             position: relative;
-            text-align: center;
-            background-color: var(--surface-color);
-            border-radius: 12px;
-            padding: 1rem;
-            border: 1px solid var(--border-color);
-        }
-
-        #canvas, #beforeCanvas, #afterCanvas {
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-            box-shadow: var(--shadow-lg);
-        }
-
-        .before-after-container {
-            display: none;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .before-after-label {
-            text-align: center;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--text-muted);
-        }
-
-        .controls-section {
-            background-color: var(--surface-color);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.5rem;
-        }
-
-        .blur-preview {
-            width: 100px;
-            height: 30px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            margin-left: 1rem;
-        }
-
-        .detection-stats {
-            display: none;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .stat-card {
-            background-color: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 1rem;
-            text-align: center;
-        }
-
-        .stat-number {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary-color);
-        }
-
-        .stat-label {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            margin-top: 0.25rem;
-        }
-
-        .detected-items {
-            display: none;
-            margin-top: 1rem;
-        }
-
-        .detected-item {
             display: inline-block;
-            background-color: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 0.25rem 0.5rem;
-            margin: 0.25rem;
-            font-size: 0.875rem;
-            color: var(--text-muted);
         }
 
-        .loading-overlay {
-            position: fixed;
+        #imageCanvas {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .scanning-overlay {
+            position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
             display: none;
-            justify-content: center;
             align-items: center;
-            z-index: 9999;
+            justify-content: center;
+            border-radius: 20px;
+            z-index: 10;
         }
 
-        .loading-content {
-            background-color: var(--surface-color);
-            border-radius: 12px;
-            padding: 2rem;
+        .scanning-content {
             text-align: center;
-            max-width: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .loading-spinner {
-            width: 3rem;
-            height: 3rem;
-            border: 3px solid var(--border-color);
-            border-top: 3px solid var(--primary-color);
+        .scanner-animation {
+            width: 80px;
+            height: 80px;
+            border: 3px solid rgba(0, 255, 136, 0.3);
+            border-top: 3px solid #00ff88;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
+            margin: 0 auto 20px;
         }
 
         @keyframes spin {
@@ -240,335 +265,253 @@
             100% { transform: rotate(360deg); }
         }
 
-        .progress {
-            background-color: var(--border-color);
-        }
-
         .progress-bar {
-            background-color: var(--primary-color);
+            width: 300px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin: 20px auto;
+            overflow: hidden;
         }
 
-        .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #00ff88, #0088ff);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 3px;
         }
 
-        .btn-outline-primary {
-            color: var(--primary-color);
-            border-color: var(--primary-color);
+        .detection-stats {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .btn-outline-primary:hover {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .form-control, .form-select {
-            background-color: var(--bg-color);
-            border-color: var(--border-color);
-            color: var(--text-color);
+        .stat-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
         }
 
-        .form-control:focus, .form-select:focus {
-            background-color: var(--bg-color);
-            border-color: var(--primary-color);
-            color: var(--text-color);
-            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+        .stat-count {
+            background: linear-gradient(45deg, #00ff88, #0088ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
         }
 
-        .form-check-input:checked {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+        .blur-box {
+            position: absolute;
+            background: rgba(255, 68, 68, 0.6);
+            border: 2px solid #ff4444;
+            border-radius: 4px;
+            backdrop-filter: blur(10px);
+            animation: blurAppear 0.5s ease-out;
         }
 
-        .toast {
-            background-color: var(--surface-color);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
+        @keyframes blurAppear {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
 
-        .theme-toggle {
-            background: none;
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            border-radius: 8px;
-            padding: 0.5rem;
+        .intensity-control {
+            margin: 20px 0;
+        }
+
+        .intensity-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .intensity-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #00ff88, #0088ff);
             cursor: pointer;
-            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 255, 136, 0.3);
         }
 
-        .theme-toggle:hover {
-            background-color: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-
-        .placeholder {
-            color: var(--text-muted);
+        .intensity-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #00ff88, #0088ff);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0, 255, 136, 0.3);
         }
 
         @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .features {
+                gap: 15px;
+            }
+            
+            .feature {
+                padding: 10px 15px;
+                font-size: 0.9rem;
+            }
+            
             .upload-area {
-                padding: 2rem 1rem;
-                min-height: 200px;
+                padding: 40px 20px;
             }
+            
+            .upload-icon {
+                font-size: 3rem;
+            }
+        }
 
-            .quick-actions {
-                flex-direction: column;
-                align-items: center;
-            }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 255, 136, 0.9);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
 
-            .detection-stats {
-                grid-template-columns: repeat(2, 1fr);
-            }
+        .toast.show {
+            transform: translateX(0);
         }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg">
-        <div class="container">
-            <a class="navbar-brand" href="#">
-                <i class="bi bi-shield-check"></i> BlurShield
-            </a>
-            <div class="d-flex align-items-center">
-                <button class="theme-toggle me-3" id="themeToggle">
-                    <i class="bi bi-moon"></i>
-                </button>
-                <span class="navbar-text">AI-Powered Privacy Protection</span>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container mt-4">
-        <!-- Upload Section -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title mb-3">
-                            <i class="bi bi-cloud-upload"></i> Upload Image
-                        </h5>
-                        
-                        <div class="upload-area" id="uploadArea">
-                            <input type="file" id="imageUpload" accept="image/*" style="display: none;">
-                            <div class="upload-icon">
-                                <i class="bi bi-cloud-upload"></i>
-                            </div>
-                            <h5>Drop your image here or click to browse</h5>
-                            <p class="text-muted">Supports JPG, PNG, GIF up to 10MB</p>
-                            
-                            <div class="quick-actions">
-                                <button class="quick-action-btn" id="browseBtn">
-                                    <i class="bi bi-folder2-open"></i> Browse Files
-                                </button>
-                                <button class="quick-action-btn" id="pasteBtn">
-                                    <i class="bi bi-clipboard"></i> Paste from Clipboard
-                                </button>
-                                <button class="quick-action-btn" id="cameraBtn">
-                                    <i class="bi bi-camera"></i> Take Photo
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="progress mt-3" id="uploadProgress" style="display: none;">
-                            <div class="progress-bar" id="uploadProgressBar" style="width: 0%"></div>
-                        </div>
-                    </div>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ Auto-Privacy Screenshot Cleaner</h1>
+            <p>Automatically detect and blur sensitive information in your screenshots</p>
+            
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">📧</div>
+                    <span>Email Addresses</span>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📱</div>
+                    <span>Phone Numbers</span>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">💳</div>
+                    <span>Credit Cards</span>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🆔</div>
+                    <span>Personal Info</span>
                 </div>
             </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="row">
-            <!-- Canvas Section -->
-            <div class="col-lg-8 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="card-title mb-0">
-                                <i class="bi bi-image"></i> Image Preview
-                            </h5>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="beforeAfterMode">
-                                <label class="form-check-label" for="beforeAfterMode">
-                                    Before/After View
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="canvas-container">
-                            <div id="placeholder" class="placeholder">
-                                <i class="bi bi-image" style="font-size: 4rem; color: var(--text-muted);"></i>
-                                <p class="mt-2">Upload an image to get started</p>
-                            </div>
-                            <canvas id="canvas" style="display: none;"></canvas>
-                            
-                            <div class="before-after-container" id="beforeAfterContainer">
-                                <div>
-                                    <div class="before-after-label">Before</div>
-                                    <canvas id="beforeCanvas"></canvas>
-                                </div>
-                                <div>
-                                    <div class="before-after-label">After</div>
-                                    <canvas id="afterCanvas"></canvas>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Action Buttons -->
-                        <div class="d-flex gap-2 mt-3 flex-wrap">
-                            <button class="btn btn-primary" id="downloadBtn" style="display: none;">
-                                <i class="bi bi-download"></i> Download Protected
-                            </button>
-                            <button class="btn btn-outline-primary" id="downloadOriginalBtn" style="display: none;">
-                                <i class="bi bi-file-earmark-image"></i> Download Original
-                            </button>
-                            <button class="btn btn-outline-secondary" id="undoBtn" style="display: none;">
-                                <i class="bi bi-arrow-counterclockwise"></i> Undo
-                            </button>
-                            <button class="btn btn-outline-danger" id="resetBtn" style="display: none;">
-                                <i class="bi bi-arrow-clockwise"></i> Reset
-                            </button>
-                        </div>
-                    </div>
+        <div class="main-content">
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📤</div>
+                    <div class="upload-text">Drop your image here</div>
+                    <div class="upload-subtext">or click to browse (PNG, JPG, JPEG)</div>
+                    <input type="file" id="fileInput" class="file-input" accept="image/*">
+                </div>
+                
+                <div class="intensity-control">
+                    <label for="blurIntensity" style="display: block; margin-bottom: 10px; font-weight: 600;">
+                        Blur Intensity: <span id="intensityValue">15</span>px
+                    </label>
+                    <input type="range" id="blurIntensity" class="intensity-slider" min="5" max="30" value="15">
                 </div>
 
-                <!-- Detection Stats -->
-                <div class="detection-stats" id="detectionStats">
-                    <div class="stat-card">
-                        <div class="stat-number" id="textDetections">0</div>
-                        <div class="stat-label">Text Items</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="faceDetections">0</div>
-                        <div class="stat-label">Faces</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalDetections">0</div>
-                        <div class="stat-label">Total Items</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="processingTime">0</div>
-                        <div class="stat-label">Seconds</div>
-                    </div>
+                <div class="controls">
+                    <button class="btn" id="scanBtn" disabled>🔍 Scan & Detect</button>
+                    <button class="btn btn-secondary" id="clearBtn" disabled>🗑️ Clear</button>
                 </div>
 
-                <!-- Detected Items -->
-                <div class="detected-items" id="detectedItemsList">
-                    <h6 class="mt-3 mb-2">Detected Items:</h6>
-                    <div id="detectedItemsContent"></div>
+                <div class="detection-stats" id="detectionStats" style="display: none;">
+                    <h3 style="margin-bottom: 15px; color: #00ff88;">Detection Results</h3>
+                    <div class="stat-item">
+                        <span>Email Addresses:</span>
+                        <span class="stat-count" id="emailCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Phone Numbers:</span>
+                        <span class="stat-count" id="phoneCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Credit Cards:</span>
+                        <span class="stat-count" id="cardCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Total Detections:</span>
+                        <span class="stat-count" id="totalCount">0</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Controls Section -->
-            <div class="col-lg-4">
-                <div class="controls-section mb-4">
-                    <h5 class="mb-3">
-                        <i class="bi bi-sliders"></i> Blur Settings
-                    </h5>
+            <div class="preview-section">
+                <div class="preview-container">
+                    <div class="canvas-container" id="canvasContainer" style="display: none;">
+                        <canvas id="imageCanvas"></canvas>
+                    </div>
                     
-                    <div class="mb-3">
-                        <label class="form-label">Blur Strength: <span id="blurValue">10</span>px</label>
-                        <div class="d-flex align-items-center">
-                            <input type="range" class="form-range" id="blurSlider" min="5" max="50" value="10">
-                            <canvas class="blur-preview" id="blurPreviewSample" width="100" height="30"></canvas>
-                        </div>
+                    <div id="placeholderText" style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; font-size: 1.2rem;">
+                        📸 Your processed image will appear here
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Blur Style</label>
-                        <select class="form-select" id="blurStyle">
-                            <option value="gaussian">Gaussian Blur</option>
-                            <option value="pixelate">Pixelate</option>
-                            <option value="blackout">Black Box</option>
-                        </select>
+                    <div class="controls" id="processedControls" style="display: none;">
+                        <button class="btn" id="downloadBtn">💾 Download Clean Image</button>
+                        <button class="btn btn-secondary" id="resetBtn">🔄 Process New Image</button>
                     </div>
                 </div>
 
-                <div class="controls-section mb-4">
-                    <h5 class="mb-3">
-                        <i class="bi bi-eye-slash"></i> Detection Settings
-                    </h5>
-                    
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="detectEmails" checked>
-                        <label class="form-check-label" for="detectEmails">
-                            <i class="bi bi-envelope"></i> Email Addresses
-                        </label>
+                <div class="scanning-overlay" id="scanningOverlay">
+                    <div class="scanning-content">
+                        <div class="scanner-animation"></div>
+                        <h3 style="margin-bottom: 10px;">Scanning Image...</h3>
+                        <p style="color: #a0a0a0; margin-bottom: 20px;" id="scanningText">Initializing privacy scan...</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.9rem; color: #00ff88;" id="progressText">0%</div>
                     </div>
-                    
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="detectPhones" checked>
-                        <label class="form-check-label" for="detectPhones">
-                            <i class="bi bi-telephone"></i> Phone Numbers
-                        </label>
-                    </div>
-                    
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="detectFaces" checked>
-                        <label class="form-check-label" for="detectFaces">
-                            <i class="bi bi-person"></i> Faces
-                        </label>
-                    </div>
-                    
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="detectAddresses">
-                        <label class="form-check-label" for="detectAddresses">
-                            <i class="bi bi-geo-alt"></i> Addresses
-                        </label>
-                    </div>
-                    
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="detectCreditCards">
-                        <label class="form-check-label" for="detectCreditCards">
-                            <i class="bi bi-credit-card"></i> Credit Cards
-                        </label>
-                    </div>
-                    
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="detectSSN">
-                        <label class="form-check-label" for="detectSSN">
-                            <i class="bi bi-shield-lock"></i> Social Security Numbers
-                        </label>
-                    </div>
-
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="blurNameCheck">
-                        <label class="form-check-label" for="blurNameCheck">
-                            <i class="bi bi-person-badge"></i> Blur My Name
-                        </label>
-                    </div>
-                    <input type="text" class="form-control mb-3" id="userNameInput" placeholder="Enter your name" style="display: none;">
-
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="detectCustom">
-                        <label class="form-check-label" for="detectCustom">
-                            <i class="bi bi-search"></i> Custom Text
-                        </label>
-                    </div>
-                    <input type="text" class="form-control" id="customTextInput" placeholder="Enter custom text to blur" style="display: none;">
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <h5 id="loadingText">Processing...</h5>
-            <p class="text-muted" id="loadingSubtext">Please wait</p>
-        </div>
-    </div>
-
-    <!-- Toast Container -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
-
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <div class="toast" id="toast"></div>
     <script src="main.js"></script>
 </body>
 </html>
